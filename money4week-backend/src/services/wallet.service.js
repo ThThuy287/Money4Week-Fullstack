@@ -29,6 +29,7 @@ class WalletService {
     await getPool().query(`UPDATE wallets SET is_archived = TRUE WHERE id = $1 AND user_id = $2`, [walletId, userId]);
   }
 
+  // Sửa hàm deposit
   async deposit(userId, walletId, data) {
     const pool = getPool();
     await pool.query(`
@@ -38,26 +39,35 @@ class WalletService {
       WHERE id = $2 AND user_id = $3
     `, [data.amount, walletId, userId]);
 
+    // Dùng đúng bảng wallet_transactions đã thiết kế trong Database_PG.sql
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS wallet_history (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID, wallet_id UUID,
-        amount DECIMAL(15,2), transaction_date DATE, note VARCHAR(255), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await pool.query(`INSERT INTO wallet_history (user_id, wallet_id, amount, transaction_date, note) VALUES ($1, $2, $3, $4, $5)`, [userId, walletId, data.amount, data.date || new Date(), data.note || 'Nạp tiền vào ví']);
+      INSERT INTO wallet_transactions (wallet_id, type, amount, source, transaction_date, note) 
+      VALUES ($1, 'deposit', $2, 'manual', $3, $4)
+    `, [walletId, data.amount, data.date || new Date(), data.note || 'Nạp tiền vào ví']);
   }
 
+  // Sửa hàm getHistory
   async getHistory(userId) {
     try {
       const result = await getPool().query(`
         SELECT h.id, h.transaction_date as date, h.note as "desc", w.name as walletName, w.icon, w.color, h.amount, w.id as walletId
-        FROM wallet_history h JOIN wallets w ON h.wallet_id = w.id
-        WHERE h.user_id = $1 ORDER BY h.transaction_date DESC, h.created_at DESC
+        FROM wallet_transactions h 
+        JOIN wallets w ON h.wallet_id = w.id
+        WHERE w.user_id = $1 
+        ORDER BY h.transaction_date DESC, h.created_at DESC
       `, [userId]);
       return result.rows.map(r => {
          const d = new Date(r.date);
-         return { id: r.id, walletId: r.walletId, date: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()}`, desc: r.desc, walletName: r.walletName, icon: r.icon, color: r.color, amount: r.amount.toLocaleString('vi-VN') + ' VNĐ' };
+         return { 
+            id: r.id, 
+            walletId: r.walletId, 
+            date: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()}`, 
+            desc: r.desc, 
+            walletName: r.walletName, 
+            icon: r.icon, 
+            color: r.color, 
+            amount: r.amount.toLocaleString('vi-VN') + ' VNĐ' 
+         };
       });
     } catch (error) { return []; }
   }
