@@ -1,0 +1,139 @@
+
+<style>
+h2.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#erd{width:100%;overflow-x:auto}
+#erd svg{max-width:100%}
+</style>
+<h2 class="sr-only">ERD cho Money4Week Database gồm 8 bảng: users, user_settings, categories, transactions, wallets, wallet_transactions, reminders, notes với 9 quan hệ</h2>
+<div id="erd" style="padding:8px 0"></div>
+<script type="module">
+import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+await document.fonts.ready;
+mermaid.initialize({
+  startOnLoad:false,
+  theme:'base',
+  fontFamily:'"Anthropic Sans", sans-serif',
+  themeVariables:{
+    darkMode:dark,
+    fontSize:'13px',
+    fontFamily:'"Anthropic Sans", sans-serif',
+    lineColor: dark ? '#9c9a92' : '#73726c',
+    textColor: dark ? '#c2c0b6' : '#3d3d3a',
+    primaryColor: dark ? '#2a2a4a' : '#e8e6fe',
+    primaryBorderColor: dark ? '#534AB7' : '#7F77DD',
+    primaryTextColor: dark ? '#c2c0b6' : '#26215C',
+    attributeBackgroundColorEven: dark ? '#1e1e2e' : '#f8f7ff',
+    attributeBackgroundColorOdd: dark ? '#252535' : '#eeedfe',
+  }
+});
+const diagram = `erDiagram
+    USERS ||--|| USER_SETTINGS : "1-1 cấu hình"
+    USERS ||--o{ CATEGORIES : "1-N tạo"
+    USERS ||--o{ TRANSACTIONS : "1-N sở hữu"
+    USERS ||--o{ WALLETS : "1-N sở hữu"
+    USERS ||--o{ REMINDERS : "1-N nhắc nhở"
+    USERS ||--o{ NOTES : "1-N ghi chú"
+    CATEGORIES ||--o{ TRANSACTIONS : "1-N phân loại"
+    CATEGORIES ||--o{ WALLETS : "1-N phân loại"
+    WALLETS ||--o{ WALLET_TRANSACTIONS : "1-N nạp tiền"
+
+    USERS {
+        uuid id PK
+        varchar email UK
+        varchar password_hash
+        varchar full_name
+        varchar job_title
+        varchar avatar_url
+        timestamp created_at
+        timestamp updated_at
+    }
+    USER_SETTINGS {
+        uuid user_id PK
+        varchar cycle_type
+        date cycle_start_date
+        varchar theme
+        varchar language
+    }
+    CATEGORIES {
+        uuid id PK
+        uuid user_id FK
+        varchar name
+        varchar type
+        varchar icon
+        varchar color_hex
+    }
+    TRANSACTIONS {
+        uuid id PK
+        uuid user_id FK
+        uuid category_id FK
+        varchar type
+        decimal amount
+        date transaction_date
+        text note
+        timestamp created_at
+    }
+    WALLETS {
+        uuid id PK
+        uuid user_id FK
+        uuid category_id FK
+        varchar name
+        decimal target_amount
+        decimal current_amount
+        date deadline_date
+        varchar color_hex
+        boolean is_auto_deduct
+        varchar auto_frequency
+        decimal auto_amount
+    }
+    WALLET_TRANSACTIONS {
+        uuid id PK
+        uuid wallet_id FK
+        decimal amount
+        date transaction_date
+        text note
+        timestamp created_at
+    }
+    REMINDERS {
+        uuid id PK
+        uuid user_id FK
+        varchar title
+        decimal amount
+        date due_date
+        boolean is_paid
+    }
+    NOTES {
+        uuid id PK
+        uuid user_id FK
+        text content
+        boolean is_completed
+    }`;
+try {
+  const {svg} = await mermaid.render('erd-svg', diagram);
+  document.getElementById('erd').innerHTML = svg;
+  document.querySelectorAll('#erd svg .node').forEach(node => {
+    const fp = node.querySelector('path[d]');
+    if (!fp) return;
+    const d = fp.getAttribute('d');
+    const nums = d.match(/-?[\d.]+/g)?.map(Number);
+    if (!nums || nums.length < 8) return;
+    const xs = [nums[0],nums[2],nums[4],nums[6]];
+    const ys = [nums[1],nums[3],nums[5],nums[7]];
+    const x=Math.min(...xs),y=Math.min(...ys);
+    const w=Math.max(...xs)-x,h=Math.max(...ys)-y;
+    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x',x);rect.setAttribute('y',y);
+    rect.setAttribute('width',w);rect.setAttribute('height',h);
+    rect.setAttribute('rx','8');
+    for(const a of['fill','stroke','stroke-width','class','style']){
+      if(fp.hasAttribute(a))rect.setAttribute(a,fp.getAttribute(a));
+    }
+    fp.replaceWith(rect);
+  });
+  document.querySelectorAll('#erd svg .row-rect-odd path,#erd svg .row-rect-even path').forEach(p=>{
+    p.setAttribute('stroke','none');
+  });
+} catch(e) {
+  document.getElementById('erd').innerHTML = '<p style="color:var(--text-secondary);font-size:13px;padding:16px">Không thể render ERD — vui lòng dùng code Mermaid ở trên tại mermaid.live</p>';
+}
+</script>
