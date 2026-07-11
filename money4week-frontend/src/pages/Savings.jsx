@@ -54,11 +54,12 @@ const Savings = () => {
     setGlobalError(null);
     try {
       const [walletsRes, historyRes] = await Promise.all([
-        walletsApi.getWallets().catch(() => []), 
-        walletsApi.getHistory().catch(() => [])
+        walletsApi.getWallets(), 
+        walletsApi.getHistory()
       ]);
 
-      const mappedWallets = (Array.isArray(walletsRes) ? walletsRes : []).map((w, index) => {
+      const walletsData = walletsRes.data || walletsRes;
+      const mappedWallets = (Array.isArray(walletsData) ? walletsData : []).map((w, index) => {
         const targetNum = w.target_amount || 1;
         const currentNum = w.current_amount || 0;
         const percent = Math.min(100, Math.floor((currentNum / targetNum) * 100));
@@ -82,7 +83,8 @@ const Savings = () => {
       });
 
       setWallets(mappedWallets);
-      setHistory(Array.isArray(historyRes) ? historyRes : []);
+      const historyData = historyRes.data || historyRes;
+      setHistory(Array.isArray(historyData) ? historyData : []);
     } catch (err) {
       setGlobalError('Không thể tải dữ liệu ví tiết kiệm. Vui lòng kiểm tra lại kết nối!');
     } finally {
