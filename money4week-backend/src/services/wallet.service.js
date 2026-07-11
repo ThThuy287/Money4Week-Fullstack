@@ -53,7 +53,7 @@ class WalletService {
         SELECT h.id, h.transaction_date as date, h.note as "desc", w.name as walletName, w.icon, w.color, h.amount, w.id as walletId
         FROM wallet_transactions h 
         JOIN wallets w ON h.wallet_id = w.id
-        WHERE w.user_id = $1 
+        WHERE w.user_id = $1 AND w.is_archived = FALSE
         ORDER BY h.transaction_date DESC, h.created_at DESC
       `, [userId]);
       return result.rows.map(r => {
@@ -66,7 +66,7 @@ class WalletService {
             walletName: r.walletName, 
             icon: r.icon, 
             color: r.color, 
-            amount: r.amount.toLocaleString('vi-VN') + ' VNĐ' 
+            amount: Number(r.amount).toLocaleString('vi-VN') + ' VNĐ' 
          };
       });
     } catch (error) { return []; }

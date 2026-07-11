@@ -488,12 +488,16 @@ const Savings = () => {
                         <span className="lg:hidden text-[#737784] font-medium text-[11px] uppercase tracking-[0.5px]">Ví nhận</span>
                         <div className="inline-flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-3 py-1 bg-[#EFEDEE] rounded-full whitespace-nowrap">
                           <HistIcon size={12} style={{ color: item.color || '#094CB2' }} />
-                          <span className="font-medium text-[11px] lg:text-[12px] text-[#1B1C1D]">{item.walletName}</span>
+                          <span className="font-medium text-[11px] lg:text-[12px] text-[#1B1C1D]">
+                            {item.walletName || (wallets.find(w => w.id === item.walletId)?.title) || 'Đã xóa'}
+                          </span>
                         </div>
                       </td>
                       <td className="px-0 lg:px-6 py-1.5 lg:py-5 flex lg:table-cell justify-between items-center">
                         <span className="lg:hidden text-[#737784] font-medium text-[11px] uppercase tracking-[0.5px]">Số tiền nạp</span>
-                        <span className="font-bold text-[14px] text-[#16A34A] lg:text-right whitespace-nowrap">+{item.amount} VNĐ</span>
+                        <span className="font-bold text-[14px] text-[#16A34A] lg:text-right whitespace-nowrap">
+                          +{Number(String(item.amount).replace(/\D/g, '')).toLocaleString('vi-VN')} VNĐ
+                        </span>
                       </td>
                     </tr>
                   );
