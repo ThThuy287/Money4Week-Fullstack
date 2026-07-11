@@ -5,7 +5,7 @@ class WalletService {
     const pool = getPool();
     const result = await pool.query(`
       SELECT id, name, target_amount, current_amount, deadline_date as deadline, 
-             is_completed, color, icon, is_auto as isAuto, auto_frequency as autoFrequency, auto_amount as autoAmount
+             is_completed, color, icon, is_auto_deduct as isAuto, auto_frequency as autoFrequency, auto_amount as autoAmount
       FROM wallets WHERE user_id = $1 AND is_archived = FALSE ORDER BY deadline_date ASC
     `, [userId]);
     return result.rows;
