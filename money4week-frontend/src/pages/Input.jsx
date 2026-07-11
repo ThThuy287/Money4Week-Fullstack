@@ -16,8 +16,7 @@ const getIconComponent = (iconName) => {
 };
 
 const formatCompactK = (num) => {
-  if (num >= 1000) return (num / 1000) + 'k';
-  return num + 'đ';
+  return Number(num).toLocaleString('vi-VN') + ' VNĐ';
 };
 
 const Input = () => {
@@ -166,7 +165,7 @@ const Input = () => {
                 id: g.id,
                 category: g.name.toUpperCase(),
                 rawAmount: g.amount,
-                amount: g.amount.toLocaleString('vi-VN').replace(/,/g, '.'),
+                amount: Number(g.amount).toLocaleString('vi-VN'),
                 width: total > 0 ? `${Math.round((g.amount / total) * 100)}%` : '0%',
                 color: g.color,
                 limit: finalLimit
@@ -331,8 +330,8 @@ const Input = () => {
       const diffDays = Math.floor((deadline - today) / (1000 * 60 * 60 * 24));
       weeksLeft = diffDays === 0 ? 1 : Math.ceil(diffDays / 7);
     }
-    const targetAmt = goal.target_amount || goal.amount || 0;
-    const currentAmt = goal.current_amount || 0;
+    const targetAmt = Number(goal.target_amount || goal.amount || 0);
+    const currentAmt = Number(goal.current_amount || 0);
     const remainingAmount = targetAmt - currentAmt;
     const weeklySaving = weeksLeft > 0 ? Math.ceil(remainingAmount / weeksLeft) : remainingAmount;
     return { weeksLeft, weeklySaving, isOverdue, targetAmt, currentAmt };
@@ -475,7 +474,7 @@ const Input = () => {
                         <span className="font-sans italic text-[10px] lg:text-[11px] text-[#434653]">{`${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`}</span>
                       </div>
                     </div>
-                    <span className={`font-sans font-bold text-[13px] lg:text-[14px] ${colorHex}`}>{sign} {item.amount.toLocaleString('vi-VN')}đ</span>
+                    <span className={`font-sans font-bold text-[13px] lg:text-[14px] ${colorHex}`}>{sign} {Number(item.amount).toLocaleString('vi-VN')} VNĐ</span>
                   </div>
                 );
               })
@@ -519,7 +518,7 @@ const Input = () => {
                       </span>
                       <div className="flex flex-row items-baseline gap-1 lg:gap-1.5 mt-0 lg:-mt-1">
                         <span className="font-sans font-bold text-[22px] lg:text-[28px] leading-none" style={{ color: isOverLimit ? '#BA1A1A' : item.color }}>
-                          {item.amount}
+                          {item.amount} VNĐ
                         </span>
                         <span className="font-sans font-medium text-[11px] lg:text-[13px] text-[#434653]">
                           / {limitVal > 0 ? `${formatCompactK(limitVal)}` : 'Không giới hạn'}
@@ -550,7 +549,7 @@ const Input = () => {
                           {item.category}
                         </span>
                         <span className="font-sans font-bold text-[18px] lg:text-[20px] leading-none" style={{ color: item.color }}>
-                          {item.amount}đ
+                          {item.amount} VNĐ
                         </span>
                       </div>
                       <div className="w-full h-[6px] lg:h-[8px] bg-[#E9E8E9] rounded-full overflow-hidden">
@@ -648,7 +647,7 @@ const Input = () => {
                       
                       <td className="px-0 lg:px-6 py-2 lg:py-5 text-[13px] lg:text-[14px] text-[#434653] flex lg:table-cell justify-between items-center">
                         <span className="lg:hidden text-[#737784] font-medium text-[12px]">Tổng cần đóng</span>
-                        <span className="font-semibold lg:font-normal text-[#1B1C1D] lg:text-[#434653]">{targetAmt ? targetAmt.toLocaleString('vi-VN') : 0} VNĐ</span>
+                        <span className="font-semibold lg:font-normal text-[#1B1C1D] lg:text-[#434653]">{targetAmt ? Number(targetAmt).toLocaleString('vi-VN') : 0} VNĐ</span>
                       </td>
                       <td className="px-0 lg:px-6 py-2 lg:py-5 text-[13px] lg:text-[14px] text-[#434653] flex lg:table-cell justify-between items-center">
                         <span className="lg:hidden text-[#737784] font-medium text-[12px]">Hạn chót</span>
@@ -660,7 +659,7 @@ const Input = () => {
                       </td>
                       <td className="px-0 lg:px-6 py-2 lg:py-5 text-[13px] lg:text-[14px] flex lg:table-cell justify-between items-center">
                         <span className="lg:hidden text-[#B45309] font-medium text-[12px]">Cần để dành/Tuần</span>
-                        <span className="font-bold text-[#B45309]">{weeklySaving.toLocaleString('vi-VN')} VNĐ</span>
+                        <span className="font-bold text-[#B45309]">{Number(weeklySaving).toLocaleString('vi-VN')} VNĐ</span>
                       </td>
                       
                       {/* Desktop Status & Delete */}
@@ -692,8 +691,8 @@ const Input = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 w-full">
           {goals.map((goal, index) => {
             const IconComponent = getIconComponent(goal.category_icon);
-            const targetAmt = goal.target_amount || goal.amount || 0;
-            const currentAmt = goal.current_amount || 0;
+            const targetAmt = Number(goal.target_amount || goal.amount || 0);
+            const currentAmt = Number(goal.current_amount || 0);
             const colors = [
               { bg: 'bg-[#FFF7ED]', text: 'text-[#EA580C]', barBg: 'bg-[#EA580C]' },
               { bg: 'bg-[#094CB2]/10', text: 'text-[#094CB2]', barBg: 'bg-[#094CB2]' },
@@ -724,7 +723,7 @@ const Input = () => {
                   <div className="flex flex-col gap-0.5">
                     <span className="font-sans font-semibold text-[14px] lg:text-[16px] text-[#1B1C1D] truncate" title={goal.name || goal.title}>{goal.name || goal.title}</span>
                     <span className="font-sans text-[11px] lg:text-[12px] text-[#434653]">
-                      <strong className="text-[#1B1C1D]">{currentAmt.toLocaleString('vi-VN')}đ</strong> / {targetAmt.toLocaleString('vi-VN')}đ
+                      <strong className="text-[#1B1C1D]">{Number(currentAmt).toLocaleString('vi-VN')} VNĐ</strong> / {Number(targetAmt).toLocaleString('vi-VN')} VNĐ
                     </span>
                   </div>
                   <div className="w-full h-1.5 bg-[#E9E8E9] rounded-full overflow-hidden mt-1">

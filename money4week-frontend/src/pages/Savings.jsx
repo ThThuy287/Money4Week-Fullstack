@@ -491,7 +491,7 @@ const Savings = () => {
                       </td>
                       <td className="px-0 lg:px-6 py-1.5 lg:py-5 flex lg:table-cell justify-between items-center">
                         <span className="lg:hidden text-[#737784] font-medium text-[11px] uppercase tracking-[0.5px]">Số tiền nạp</span>
-                        <span className="font-bold text-[14px] text-[#16A34A] lg:text-right whitespace-nowrap">+{item.amount}</span>
+                        <span className="font-bold text-[14px] text-[#16A34A] lg:text-right whitespace-nowrap">+{item.amount} VNĐ</span>
                       </td>
                     </tr>
                   );

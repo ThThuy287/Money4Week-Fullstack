@@ -59,18 +59,17 @@ const Home = () => {
         const now = new Date(); now.setHours(0, 0, 0, 0); 
         let sumWeekly = 0;
         remindersList.forEach(item => {
-          const targetAmount = parseInt(String(item.amount || item.target_amount || 0).replace(/\D/g, ''), 10) || 0;
-          const currentSaved = parseInt(String(item.current_amount || item.saved || 0).replace(/\D/g, ''), 10) || 0;
+          const targetAmount = Number(item.amount || item.target_amount || 0);
+          const currentSaved = Number(item.current_amount || item.saved || 0);
           const remainingAmount = targetAmount - currentSaved;
           if (remainingAmount > 0) {
             const dueDate = parseSafeDate(item.due_date || item.deadline || item.date);
             if (isNaN(dueDate.getTime())) return;
-            dueDate.setHours(23, 59, 59, 999); 
+            dueDate.setHours(0, 0, 0, 0); 
             const timeDiff = dueDate.getTime() - now.getTime();
-            const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
-            if (daysLeft > 0) {
-              let weeksLeft = Math.ceil(daysLeft / 7);
-              if (weeksLeft < 1) weeksLeft = 1;
+            const daysLeft = Math.floor(timeDiff / (1000 * 3600 * 24));
+            if (daysLeft >= 0) {
+              let weeksLeft = daysLeft === 0 ? 1 : Math.ceil(daysLeft / 7);
               sumWeekly += (remainingAmount / weeksLeft);
             } else { sumWeekly += remainingAmount; }
           }
@@ -153,7 +152,7 @@ const Home = () => {
 
         let cIncome = 0; let cExpense = 0;
         currTxs.forEach(tx => {
-            const amt = parseInt(String(tx.amount||0).replace(/\D/g,''),10)||0;
+            const amt = Number(tx.amount || 0);
             const txDate = parseSafeDate(tx.date || tx.transaction_date);
             const isSaving = tx.type === 'saving' || tx.category?.name?.toLowerCase().includes('tiết kiệm');
             if (tx.type === 'income') cIncome += amt;
@@ -170,7 +169,7 @@ const Home = () => {
 
         let pIncome = 0; let pExpense = 0;
         prevTxs.forEach(tx => {
-            const amt = parseInt(String(tx.amount||0).replace(/\D/g,''),10)||0;
+            const amt = Number(tx.amount || 0);
             const isSaving = tx.type === 'saving' || tx.category?.name?.toLowerCase().includes('tiết kiệm');
             if (tx.type === 'income') pIncome += amt;
             else if (tx.type === 'expense' && !isSaving) pExpense += amt;
