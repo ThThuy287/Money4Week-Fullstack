@@ -50,7 +50,7 @@ class WalletService {
   async getHistory(userId) {
     try {
       const result = await getPool().query(`
-        SELECT h.id, h.transaction_date as date, h.note as "desc", w.name as walletName, w.icon, w.color, h.amount, w.id as walletId
+        SELECT h.id, h.transaction_date as date, h.note as "desc", w.name as "walletName", w.icon, w.color, h.amount, w.id as "walletId"
         FROM wallet_transactions h 
         JOIN wallets w ON h.wallet_id = w.id
         WHERE w.user_id = $1 AND w.is_archived = FALSE

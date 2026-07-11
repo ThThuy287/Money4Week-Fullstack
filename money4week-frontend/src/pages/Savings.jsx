@@ -60,8 +60,8 @@ const Savings = () => {
 
       const walletsData = walletsRes.data || walletsRes;
       const mappedWallets = (Array.isArray(walletsData) ? walletsData : []).map((w, index) => {
-        const targetNum = w.target_amount || 1;
-        const currentNum = w.current_amount || 0;
+        const targetNum = Number(w.target_amount || 1);
+        const currentNum = Number(w.current_amount || 0);
         const percent = Math.min(100, Math.floor((currentNum / targetNum) * 100));
         const themeColor = w.color || colors[index % colors.length];
         
@@ -69,7 +69,7 @@ const Savings = () => {
           id: w.id,
           title: w.name,
           current: `${currentNum.toLocaleString('vi-VN')} VNĐ`,
-          target: `${(w.target_amount || 0).toLocaleString('vi-VN')} VNĐ`,
+          target: `${targetNum.toLocaleString('vi-VN')} VNĐ`,
           percent: percent,
           color: themeColor,
           bgLight: hexToRgba(themeColor, 0.1),

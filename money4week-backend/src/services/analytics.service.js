@@ -31,15 +31,7 @@ class AnalyticsService {
       SELECT type, amount, transaction_date as date
       FROM transactions WHERE user_id = $1 AND deleted_at IS NULL AND transaction_date >= $2 AND transaction_date <= $3
     `, [userId, sqlStart, sqlEnd]);
-    
     const transactions = transResult.rows;
-
-    const walletTransResult = await pool.query(`
-      SELECT SUM(wt.amount) as total_deposit
-      FROM wallet_transactions wt JOIN wallets w ON wt.wallet_id = w.id
-      WHERE w.user_id = $1 AND wt.type = 'deposit' AND wt.transaction_date >= $2 AND wt.transaction_date <= $3
-    `, [userId, sqlStart, sqlEnd]);
-    const totalDeposit = walletTransResult.rows[0].total_deposit || 0;
 
     let totalIncome = 0, totalExpense = 0;
     transactions.forEach(t => {
@@ -47,7 +39,28 @@ class AnalyticsService {
       if (t.type === 'expense') totalExpense += Number(t.amount);
     });
 
-    const currentBalance = totalIncome - totalExpense - totalDeposit;
+    // 2. Tính TỔNG SỐ DƯ HIỆN TẠI (Tính trọn đời, KHÔNG bị giới hạn bởi sqlStart và sqlEnd)
+    // Tổng Thu - Tổng Chi (Trọn đời)
+    const lifetimeTransResult = await pool.query(`
+      SELECT 
+        SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_in,
+        SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as total_out
+      FROM transactions WHERE user_id = $1 AND deleted_at IS NULL
+    `, [userId]);
+    const lifetimeIncome = Number(lifetimeTransResult.rows[0].total_in) || 0;
+    const lifetimeExpense = Number(lifetimeTransResult.rows[0].total_out) || 0;
+
+    // Tổng Tiền nạp vào Ví tiết kiệm (Trọn đời, LỌC BỎ CÁC VÍ ĐÃ XÓA)
+    const lifetimeWalletResult = await pool.query(`
+      SELECT SUM(wt.amount) as total_deposit
+      FROM wallet_transactions wt 
+      JOIN wallets w ON wt.wallet_id = w.id
+      WHERE w.user_id = $1 AND wt.type = 'deposit' AND w.is_archived = FALSE
+    `, [userId]);
+    const lifetimeDeposit = Number(lifetimeWalletResult.rows[0].total_deposit) || 0;
+
+    // Áp dụng công thức: Thu - Chi - Nạp Ví
+    const currentBalance = lifetimeIncome - lifetimeExpense - lifetimeDeposit;
     const savingRate = totalIncome > 0 ? ((totalIncome - totalExpense) / totalIncome * 100).toFixed(1) : 0;
 
     const walletsResult = await pool.query(`SELECT name, target_amount, current_amount, deadline_date FROM wallets WHERE user_id = $1 AND is_completed = FALSE AND is_archived = FALSE ORDER BY deadline_date ASC`, [userId]);
