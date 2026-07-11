@@ -13,14 +13,14 @@ class WalletService {
 
   async createWallet(userId, data) {
     await getPool().query(`
-      INSERT INTO wallets (user_id, name, target_amount, current_amount, deadline_date, is_completed, is_archived, color, icon, is_auto, auto_frequency, auto_amount)
+      INSERT INTO wallets (user_id, name, target_amount, current_amount, deadline_date, is_completed, is_archived, color, icon, is_auto_deduct, auto_frequency, auto_amount)
       VALUES ($1, $2, $3, 0, $4, FALSE, FALSE, $5, $6, $7, $8, $9)
     `, [userId, data.name, data.amount, data.deadline || null, data.color || '#094CB2', data.icon || 'Wallet', data.isAuto ? true : false, data.autoFrequency, data.autoAmount || 0]);
   }
 
   async updateWallet(userId, walletId, data) {
     await getPool().query(`
-      UPDATE wallets SET name = $1, target_amount = $2, deadline_date = $3, color = $4, icon = $5, is_auto = $6, auto_frequency = $7, auto_amount = $8
+      UPDATE wallets SET name = $1, target_amount = $2, deadline_date = $3, color = $4, icon = $5, is_auto_deduct = $6, auto_frequency = $7, auto_amount = $8
       WHERE id = $9 AND user_id = $10
     `, [data.name, data.amount, data.deadline || null, data.color, data.icon || 'Wallet', data.isAuto ? true : false, data.autoFrequency, data.autoAmount || 0, walletId, userId]);
   }
