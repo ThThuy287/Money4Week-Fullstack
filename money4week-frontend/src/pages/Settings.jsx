@@ -332,19 +332,21 @@ const Settings = () => {
       </div>
 
       {/* SIDEBAR NAVIGATION */}
-      <aside className="hidden lg:block w-[280px] shrink-0 bg-white border border-[#E3E2E3]/50 rounded-2xl p-5 shadow-[0px_4px_24px_rgba(27,28,29,0.04)] sticky top-28 z-30">
-        <ul className="flex flex-col gap-2 w-full">
-          {[{ id: 'profile', label: 'Hồ sơ cá nhân' }, { id: 'cycle', label: 'Tùy chỉnh Chu kỳ' }, { id: 'categories', label: 'Quản lý Danh mục' }].map((item) => (
-            <li key={item.id} className="flex-1">
-              <button onClick={() => scrollToSection(item.id)} className={`w-full h-full flex items-center justify-start px-6 py-4 rounded-xl text-left transition-colors cursor-pointer min-h-[48px] ${activeSection === item.id ? 'bg-[#094CB2]/10 text-[#094CB2] font-sans font-bold' : 'text-[#434653] font-sans font-medium hover:bg-[#F5F3F4]'}`}>
-                <span className="text-[15px] leading-[1.2] break-words">
-                  {item.label}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </aside>
+      <div className="hidden lg:block w-[280px] shrink-0">
+        <aside className="w-[280px] bg-white border border-[#E3E2E3]/50 rounded-2xl p-5 shadow-[0px_4px_24px_rgba(27,28,29,0.04)] fixed top-28 z-30">
+          <ul className="flex flex-col gap-2 w-full">
+            {[{ id: 'profile', label: 'Hồ sơ cá nhân' }, { id: 'cycle', label: 'Tùy chỉnh Chu kỳ' }, { id: 'categories', label: 'Quản lý Danh mục' }].map((item) => (
+              <li key={item.id} className="flex-1">
+                <button onClick={() => scrollToSection(item.id)} className={`w-full h-full flex items-center justify-start px-6 py-4 rounded-xl text-left transition-colors cursor-pointer min-h-[48px] ${activeSection === item.id ? 'bg-[#094CB2]/10 text-[#094CB2] font-sans font-bold' : 'text-[#434653] font-sans font-medium hover:bg-[#F5F3F4]'}`}>
+                  <span className="text-[15px] leading-[1.2] break-words">
+                    {item.label}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      </div>
 
       <main className="flex-1 flex flex-col gap-8 relative z-10 w-full overflow-hidden mt-2 lg:mt-0">
         
@@ -500,20 +502,20 @@ const Settings = () => {
                 return (
                   <div key={cat.id} className="flex justify-between items-center p-4 lg:p-5 bg-white border border-[#E3E2E3]/80 rounded-2xl hover:shadow-md transition-shadow group relative overflow-hidden">
                     <div className="absolute left-0 top-0 bottom-0 w-1.5 opacity-50" style={{ backgroundColor: cat.color_hex || '#094CB2' }}></div>
-                    <div className="flex items-center gap-4 pl-2 lg:pl-3">
+                    <div className="flex items-center gap-4 pl-2 lg:pl-3 flex-1 min-w-0">
                       <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: hexToRgba(cat.color_hex || '#094CB2', 0.1) }}>
                         <IconComp size={20} style={{ color: cat.color_hex || '#094CB2' }} />
                       </div>
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-1 flex-1 min-w-0">
                         <div className="flex items-center gap-2 lg:gap-3">
-                          <span className="font-sans font-bold text-[15px] lg:text-[16px] text-[#1B1C1D] truncate max-w-[120px] lg:max-w-[130px]">{cat.name}</span>
-                          {cat.type === 'income' && <span className="text-[9px] bg-[#F0FDF4] text-[#16A34A] border border-[#16A34A]/20 px-2 py-0.5 rounded-full font-bold uppercase tracking-[0.5px]">THU</span>}
+                          <span className="font-sans font-bold text-[15px] lg:text-[16px] text-[#1B1C1D] truncate">{cat.name}</span>
+                          {cat.type === 'income' && <span className="text-[9px] bg-[#F0FDF4] text-[#16A34A] border border-[#16A34A]/20 px-2 py-0.5 rounded-full font-bold uppercase tracking-[0.5px] shrink-0">THU</span>}
                         </div>
-                        <span className="font-sans text-[12px] lg:text-[13px] text-[#737784] truncate max-w-[150px]">{cat.note || 'Tùy chọn'}</span>
+                        <span className="font-sans text-[12px] lg:text-[13px] text-[#737784] truncate">{cat.note || 'Tùy chọn'}</span>
                       </div>
                     </div>
                     {/* Luôn hiển thị nút thao tác trên Mobile */}
-                    <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1 shrink-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                       <button onClick={() => handleEditCat(cat)} className="p-2.5 text-gray-400 hover:text-[#094CB2] hover:bg-blue-50 rounded-xl cursor-pointer transition-colors min-w-[44px] min-h-[44px] flex justify-center items-center"><Edit2 size={18} /></button>
                       <button onClick={(e) => handleDeleteCat(cat.id, e)} className="p-2.5 text-gray-400 hover:text-[#BA1A1A] hover:bg-red-50 rounded-xl cursor-pointer transition-colors min-w-[44px] min-h-[44px] flex justify-center items-center"><Trash2 size={18} /></button>
                     </div>

@@ -116,7 +116,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex flex-row w-full h-screen bg-white overflow-hidden">
+    <div className="fixed inset-0 z-50 flex flex-row w-full h-screen bg-white overflow-hidden">
       {/* CỘT TRÁI: BRANDING */}
       <div className="hidden lg:flex flex-col justify-center items-start p-16 w-1/2 h-full bg-[#094CB2] relative isolation-isolate overflow-hidden">
         <div className="absolute w-[500px] h-[500px] -right-[250px] -top-[250px] bg-[#3366CC] mix-blend-multiply opacity-70 blur-[32px] rounded-xl z-0"></div>

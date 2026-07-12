@@ -154,25 +154,25 @@ const Home = () => {
         currTxs.forEach(tx => {
             const amt = Number(tx.amount || 0);
             const txDate = parseSafeDate(tx.date || tx.transaction_date);
-            const isSaving = tx.type === 'saving' || tx.category?.name?.toLowerCase().includes('tiết kiệm');
+            
             if (tx.type === 'income') cIncome += amt;
-            else if (tx.type === 'expense' && !isSaving) cExpense += amt;
+            else if (tx.type === 'expense' || tx.type === 'saving') cExpense += amt;
+            
             for(let i=0; i<4; i++) {
                 if (txDate >= chartData[i].start && txDate <= chartData[i].end) {
                     if (tx.type === 'income') chartData[i].income += amt;
-                    else if (tx.type === 'expense' && !isSaving) chartData[i].expense += amt;
+                    else if (tx.type === 'expense' || tx.type === 'saving') chartData[i].expense += amt;
                     break;
                 }
             }
         });
-        setCurrentIncome(cIncome); setCurrentExpense(cExpense); setDynamicChart(chartData);
 
         let pIncome = 0; let pExpense = 0;
         prevTxs.forEach(tx => {
             const amt = Number(tx.amount || 0);
-            const isSaving = tx.type === 'saving' || tx.category?.name?.toLowerCase().includes('tiết kiệm');
+            
             if (tx.type === 'income') pIncome += amt;
-            else if (tx.type === 'expense' && !isSaving) pExpense += amt;
+            else if (tx.type === 'expense' || tx.type === 'saving') pExpense += amt;
         });
 
         if (pIncome === 0) setIncomeChange({ percent: cIncome > 0 ? 100 : 0, isIncrease: cIncome >= pIncome });
