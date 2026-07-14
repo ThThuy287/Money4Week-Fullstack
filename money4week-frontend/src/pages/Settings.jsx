@@ -89,12 +89,9 @@ const Settings = () => {
         setCycleType(cType);
         
         const anchor = localStorage.getItem('userCycleAnchor') || res.cycle_anchor_date;
-        if (anchor) {
-          setStartDate(anchor.split('T')[0]);
-        } else {
-          const today = new Date();
-          setStartDate(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`);
-        }
+              if (anchor && anchor !== 'null' && anchor !== 'undefined') {
+                setStartDate(anchor.split('T')[0]);
+              }
 
         if (res.email) {
           setEmail(res.email);
@@ -502,16 +499,16 @@ const Settings = () => {
                 return (
                   <div key={cat.id} className="flex justify-between items-center p-4 lg:p-5 bg-white border border-[#E3E2E3]/80 rounded-2xl hover:shadow-md transition-shadow group relative overflow-hidden">
                     <div className="absolute left-0 top-0 bottom-0 w-1.5 opacity-50" style={{ backgroundColor: cat.color_hex || '#094CB2' }}></div>
-                    <div className="flex items-center gap-4 pl-2 lg:pl-3 flex-1 min-w-0">
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: hexToRgba(cat.color_hex || '#094CB2', 0.1) }}>
-                        <IconComp size={20} style={{ color: cat.color_hex || '#094CB2' }} />
+                    <div className="flex items-center gap-3 pl-2 lg:pl-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: hexToRgba(cat.color_hex || '#094CB2', 0.1) }}>
+                        <IconComp size={18} style={{ color: cat.color_hex || '#094CB2' }} />
                       </div>
-                      <div className="flex flex-col gap-1 flex-1 min-w-0">
-                        <div className="flex items-center gap-2 lg:gap-3">
-                          <span className="font-sans font-bold text-[15px] lg:text-[16px] text-[#1B1C1D] truncate">{cat.name}</span>
+                      <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-sans font-bold text-[13px] lg:text-[14px] text-[#1B1C1D] truncate">{cat.name}</span>
                           {cat.type === 'income' && <span className="text-[9px] bg-[#F0FDF4] text-[#16A34A] border border-[#16A34A]/20 px-2 py-0.5 rounded-full font-bold uppercase tracking-[0.5px] shrink-0">THU</span>}
                         </div>
-                        <span className="font-sans text-[12px] lg:text-[13px] text-[#737784] truncate">{cat.note || 'Tùy chọn'}</span>
+                        <span className="font-sans text-[11px] lg:text-[12px] text-[#737784] truncate">{cat.note || 'Tùy chọn'}</span>
                       </div>
                     </div>
                     {/* Luôn hiển thị nút thao tác trên Mobile */}
