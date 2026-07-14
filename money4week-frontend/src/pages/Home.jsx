@@ -76,8 +76,8 @@ const Home = () => {
         });
         setTotalWeeklyTarget(Math.round(sumWeekly));
 
-        const cycleType = localStorage.getItem('userCycleType') || profileRes?.cycle_type || '4_weeks';
-        const anchorDateStr = localStorage.getItem('userCycleAnchor') || profileRes?.cycle_anchor_date;
+        const cycleType = profileRes?.cycle_type || localStorage.getItem('userCycleType') || '4_weeks';
+        const anchorDateStr = profileRes?.cycle_anchor_date || localStorage.getItem('userCycleAnchor');
         if (cycleType === '1_month') setCycleName('Tháng này');
         else if (cycleType === '30_days') setCycleName('30 Ngày');
         else setCycleName('4 Tuần');

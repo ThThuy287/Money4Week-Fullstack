@@ -321,20 +321,26 @@ const Input = () => {
   const newBalanceNum = currentBalanceNum + depositAmountNum;
 
   const calculateGoalStats = (goal) => {
-    if (!goal || (!goal.deadline && !goal.due_date)) return { weeksLeft: 0, weeklySaving: 0, isOverdue: false, targetAmt: 0, currentAmt: 0 };
+    if (!goal || (!goal.deadline && !goal.due_date)) return { weeksLeft: 0, weeklySaving: 0, isOverdue: false, targetAmt: 0, currentAmt: 0, effectiveDeadline: null };
+    
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const deadline = new Date(goal.deadline || goal.due_date); deadline.setHours(0, 0, 0, 0);
-    const isOverdue = deadline < today;
-    let weeksLeft = 0;
-    if (!isOverdue) {
-      const diffDays = Math.floor((deadline - today) / (1000 * 60 * 60 * 24));
-      weeksLeft = diffDays === 0 ? 1 : Math.ceil(diffDays / 7);
+    let deadline = new Date(goal.deadline || goal.due_date); deadline.setHours(0, 0, 0, 0);
+
+    // Tự động dời hạn chót sang tháng tiếp theo nếu ngày hiện tại đã vượt qua hạn chót cũ
+    while (deadline < today) {
+      deadline.setMonth(deadline.getMonth() + 1);
     }
+
+    const isOverdue = false; // Đã dời ngày nên không còn trạng thái quá hạn
+    const diffDays = Math.floor((deadline - today) / (1000 * 60 * 60 * 24));
+    const weeksLeft = diffDays === 0 ? 1 : Math.ceil(diffDays / 7);
+    
     const targetAmt = Number(goal.target_amount || goal.amount || 0);
     const currentAmt = Number(goal.current_amount || 0);
-    const remainingAmount = targetAmt - currentAmt;
+    const remainingAmount = targetAmt - currentAmt > 0 ? targetAmt - currentAmt : 0;
     const weeklySaving = weeksLeft > 0 ? Math.ceil(remainingAmount / weeksLeft) : remainingAmount;
-    return { weeksLeft, weeklySaving, isOverdue, targetAmt, currentAmt };
+    
+    return { weeksLeft, weeklySaving, isOverdue, targetAmt, currentAmt, effectiveDeadline: deadline };
   };
 
   const getStatusInfo = (goal) => {
@@ -615,66 +621,66 @@ const Input = () => {
                 </tr>
               ) : (
                 goals.map((goal) => {
-                  const { weeksLeft, weeklySaving, targetAmt } = calculateGoalStats(goal);
-                  const statusInfo = getStatusInfo(goal);
-                  const IconComponent = getIconComponent(goal.category_icon);
-                  const formatDeadline = (dateStr) => {
-                    if (!dateStr) return '';
-                    const parts = dateStr.split('T')[0].split('-');
-                    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-                  };
+              const { weeksLeft, weeklySaving, targetAmt, effectiveDeadline } = calculateGoalStats(goal);
+              const statusInfo = getStatusInfo(goal);
+              const IconComponent = getIconComponent(goal.category_icon);
+              
+              const formatDeadlineObj = (dateObj) => {
+                if (!dateObj || isNaN(dateObj.getTime())) return '';
+                return `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${dateObj.getFullYear()}`;
+              };
 
                   return (
-                    // Convert row to card on mobile
-                    <tr key={goal.id} className="flex flex-col lg:table-row border border-[#E3E2E3]/60 lg:border-0 lg:border-b lg:border-[#E3E2E3]/20 rounded-xl lg:rounded-none mb-4 lg:mb-0 p-4 lg:p-0 bg-white shadow-sm lg:shadow-none lg:hover:bg-gray-50/50">
-                      {/* Name & Mobile Delete/Status */}
-                      <td className="px-0 lg:px-6 py-2 lg:py-5 flex lg:table-cell justify-between items-center border-b lg:border-0 border-gray-100 pb-3 lg:pb-5 mb-2 lg:mb-0">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-[#094CB2]/10 rounded-lg flex items-center justify-center">
-                            <IconComponent size={16} className="text-[#094CB2]" />
-                          </div>
-                          <span className="font-semibold text-[14px] text-[#1B1C1D] truncate max-w-[200px] lg:max-w-none">{goal.name || goal.title}</span>
+                // Convert row to card on mobile
+                <tr key={goal.id} className="flex flex-col lg:table-row border border-[#E3E2E3]/60 lg:border-0 lg:border-b lg:border-[#E3E2E3]/20 rounded-xl lg:rounded-none mb-4 lg:mb-0 p-4 lg:p-0 bg-white shadow-sm lg:shadow-none lg:hover:bg-gray-50/50">
+                  {/* Name & Mobile Delete/Status */}
+                  <td className="px-0 lg:px-6 py-2 lg:py-5 flex lg:table-cell justify-between items-center border-b lg:border-0 border-gray-100 pb-3 lg:pb-5 mb-2 lg:mb-0">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-[#094CB2]/10 rounded-lg flex items-center justify-center">
+                        <IconComponent size={16} className="text-[#094CB2]" />
+                      </div>
+                      <span className="font-semibold text-[14px] text-[#1B1C1D] truncate max-w-[200px] lg:max-w-none">{goal.name || goal.title}</span>
+                    </div>
+                    {/* Mobile right area */}
+                    <div className="flex lg:hidden items-center gap-2">
+                       <div className={`inline-flex items-center gap-1.5 px-2 py-1 ${statusInfo.bgColor} border ${statusInfo.borderColor} rounded-full`}>
+                          <div className={`w-[4px] h-[4px] rounded-full ${statusInfo.dotColor}`}></div>
+                          <span className={`font-bold text-[9px] ${statusInfo.textColor} uppercase tracking-[0.5px]`}>{statusInfo.label}</span>
                         </div>
-                        {/* Mobile right area */}
-                        <div className="flex lg:hidden items-center gap-2">
-                           <div className={`inline-flex items-center gap-1.5 px-2 py-1 ${statusInfo.bgColor} border ${statusInfo.borderColor} rounded-full`}>
-                              <div className={`w-[4px] h-[4px] rounded-full ${statusInfo.dotColor}`}></div>
-                              <span className={`font-bold text-[9px] ${statusInfo.textColor} uppercase tracking-[0.5px]`}>{statusInfo.label}</span>
-                            </div>
-                           <button type="button" onClick={() => handleDeleteGoal(goal.id)} className="p-1 text-[#BA1A1A] hover:bg-red-50 rounded-md cursor-pointer"><X size={18} /></button>
-                        </div>
-                      </td>
-                      
-                      <td className="px-0 lg:px-6 py-2 lg:py-5 text-[13px] lg:text-[14px] text-[#434653] flex lg:table-cell justify-between items-center">
-                        <span className="lg:hidden text-[#737784] font-medium text-[12px]">Tổng cần đóng</span>
-                        <span className="font-semibold lg:font-normal text-[#1B1C1D] lg:text-[#434653]">{targetAmt ? Number(targetAmt).toLocaleString('vi-VN') : 0} VNĐ</span>
-                      </td>
-                      <td className="px-0 lg:px-6 py-2 lg:py-5 text-[13px] lg:text-[14px] text-[#434653] flex lg:table-cell justify-between items-center">
-                        <span className="lg:hidden text-[#737784] font-medium text-[12px]">Hạn chót</span>
-                        <span className="text-[#1B1C1D] lg:text-[#434653]">{formatDeadline(goal.deadline || goal.due_date)}</span>
-                      </td>
-                      <td className="px-0 lg:px-6 py-2 lg:py-5 text-[13px] lg:text-[14px] text-[#434653] flex lg:table-cell justify-between items-center">
-                        <span className="lg:hidden text-[#737784] font-medium text-[12px]">Còn lại</span>
-                        <span className="text-[#1B1C1D] lg:text-[#434653]">{weeksLeft} tuần</span>
-                      </td>
-                      <td className="px-0 lg:px-6 py-2 lg:py-5 text-[13px] lg:text-[14px] flex lg:table-cell justify-between items-center">
-                        <span className="lg:hidden text-[#B45309] font-medium text-[12px]">Cần để dành/Tuần</span>
-                        <span className="font-bold text-[#B45309]">{Number(weeklySaving).toLocaleString('vi-VN')} VNĐ</span>
-                      </td>
-                      
-                      {/* Desktop Status & Delete */}
-                      <td className="hidden lg:table-cell px-6 py-5">
-                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 ${statusInfo.bgColor} border ${statusInfo.borderColor} rounded-full`}>
-                          <div className={`w-[6px] h-[6px] rounded-full ${statusInfo.dotColor}`}></div>
-                          <span className={`font-bold text-[10px] ${statusInfo.textColor} uppercase tracking-[0.5px]`}>{statusInfo.label}</span>
-                        </div>
-                      </td>
-                      <td className="hidden lg:table-cell px-6 py-5">
-                        <button type="button" onClick={() => handleDeleteGoal(goal.id)} className="text-[#BA1A1A] hover:text-[#991B1B] transition-colors cursor-pointer p-2"><X size={16} /></button>
-                      </td>
-                    </tr>
-                  );
-                })
+                       <button type="button" onClick={() => handleDeleteGoal(goal.id)} className="p-1 text-[#BA1A1A] hover:bg-red-50 rounded-md cursor-pointer"><X size={18} /></button>
+                    </div>
+                  </td>
+                  
+                  <td className="px-0 lg:px-6 py-2 lg:py-5 text-[13px] lg:text-[14px] text-[#434653] flex lg:table-cell justify-between items-center">
+                    <span className="lg:hidden text-[#737784] font-medium text-[12px]">Tổng cần đóng</span>
+                    <span className="font-semibold lg:font-normal text-[#1B1C1D] lg:text-[#434653]">{targetAmt ? Number(targetAmt).toLocaleString('vi-VN') : 0} VNĐ</span>
+                  </td>
+                  <td className="px-0 lg:px-6 py-2 lg:py-5 text-[13px] lg:text-[14px] text-[#434653] flex lg:table-cell justify-between items-center">
+                    <span className="lg:hidden text-[#737784] font-medium text-[12px]">Hạn chót</span>
+                    <span className="text-[#1B1C1D] lg:text-[#434653]">{formatDeadlineObj(effectiveDeadline)}</span>
+                  </td>
+                  <td className="px-0 lg:px-6 py-2 lg:py-5 text-[13px] lg:text-[14px] text-[#434653] flex lg:table-cell justify-between items-center">
+                    <span className="lg:hidden text-[#737784] font-medium text-[12px]">Còn lại</span>
+                    <span className="text-[#1B1C1D] lg:text-[#434653]">{weeksLeft} tuần</span>
+                  </td>
+                  <td className="px-0 lg:px-6 py-2 lg:py-5 text-[13px] lg:text-[14px] flex lg:table-cell justify-between items-center">
+                    <span className="lg:hidden text-[#B45309] font-medium text-[12px]">Cần để dành/Tuần</span>
+                    <span className="font-bold text-[#B45309]">{Number(weeklySaving).toLocaleString('vi-VN')} VNĐ</span>
+                  </td>
+                  
+                  {/* Desktop Status & Delete */}
+                  <td className="hidden lg:table-cell px-6 py-5">
+                    <div className={`inline-flex items-center gap-1.5 px-3 py-1 ${statusInfo.bgColor} border ${statusInfo.borderColor} rounded-full`}>
+                      <div className={`w-[6px] h-[6px] rounded-full ${statusInfo.dotColor}`}></div>
+                      <span className={`font-bold text-[10px] ${statusInfo.textColor} uppercase tracking-[0.5px]`}>{statusInfo.label}</span>
+                    </div>
+                  </td>
+                  <td className="hidden lg:table-cell px-6 py-5">
+                    <button type="button" onClick={() => handleDeleteGoal(goal.id)} className="text-[#BA1A1A] hover:text-[#991B1B] transition-colors cursor-pointer p-2"><X size={16} /></button>
+                  </td>
+                </tr>
+              );
+            })
               )}
             </tbody>
           </table>

@@ -85,10 +85,10 @@ const Settings = () => {
         setJobTitle(res.job_title || '');
         setAvatarPreview(res.avatar_url || null);
         
-        const cType = localStorage.getItem('userCycleType') || res.cycle_type || '4_weeks';
+        const cType = res.cycle_type || localStorage.getItem('userCycleType') || '4_weeks';
         setCycleType(cType);
         
-        const anchor = localStorage.getItem('userCycleAnchor') || res.cycle_anchor_date;
+        const anchor = res.cycle_anchor_date || localStorage.getItem('userCycleAnchor');
               if (anchor && anchor !== 'null' && anchor !== 'undefined') {
                 setStartDate(anchor.split('T')[0]);
               }
@@ -192,7 +192,12 @@ const Settings = () => {
   // ==========================================
   const handleLogout = () => {
     if (window.confirm('Bạn có chắc chắn muốn đăng xuất khỏi ứng dụng?')) {
-      localStorage.clear(); // Xóa toàn bộ dữ liệu phiên làm việc
+      // Chỉ xóa Token và thông tin định danh, GIỮ LẠI cấu hình chu kỳ tài chính
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userAvatar');
       window.location.href = '/login'; // Chuyển hướng về trang đăng nhập
     }
   };
