@@ -65,8 +65,9 @@ const Reports = () => {
     try {
       const profile = await usersApi.getProfile().catch(() => null);
       
-      const cycleType = profile?.cycle_type || localStorage.getItem('userCycleType') || '4_weeks';
-      const anchorDateStr = profile?.cycle_anchor_date || localStorage.getItem('userCycleAnchor');
+      // Thay đổi thành:
+const cycleType = localStorage.getItem('userCycleType') || profile?.cycle_type || '4_weeks';
+const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_anchor_date;
 
       const today = new Date();
       today.setHours(0,0,0,0);

@@ -85,13 +85,11 @@ const Settings = () => {
         setJobTitle(res.job_title || '');
         setAvatarPreview(res.avatar_url || null);
         
-        const cType = res.cycle_type || localStorage.getItem('userCycleType') || '4_weeks';
-        setCycleType(cType);
-        
-        const anchor = res.cycle_anchor_date || localStorage.getItem('userCycleAnchor');
-              if (anchor && anchor !== 'null' && anchor !== 'undefined') {
-                setStartDate(anchor.split('T')[0]);
-              }
+        // Thay đổi thành:
+const cType = localStorage.getItem('userCycleType') || res.cycle_type || '4_weeks';
+setCycleType(cType);
+
+const anchor = localStorage.getItem('userCycleAnchor') || res.cycle_anchor_date;
 
         if (res.email) {
           setEmail(res.email);

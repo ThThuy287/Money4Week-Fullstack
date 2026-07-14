@@ -46,8 +46,9 @@ const PDFPreview = () => {
           setUserName(profile.name || profile.full_name || 'Thanh Thủy');
         }
 
-        const cycleType = profile?.cycle_type || localStorage.getItem('userCycleType') || '4_weeks';
-        const anchorDateStr = profile?.cycle_anchor_date || localStorage.getItem('userCycleAnchor');
+        // Thay đổi thành:
+const cycleType = localStorage.getItem('userCycleType') || profile?.cycle_type || '4_weeks';
+const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_anchor_date;
 
         let currentStart = new Date();
         currentStart.setHours(0,0,0,0);
