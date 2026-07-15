@@ -140,21 +140,29 @@ const Input = () => {
         const firstDay = `${yyyy}-${mm}-01`;
         const lastDay = `${yyyy}-${mm}-${lastDayNum}`;
 
-        const res = await transactionsApi.getTransactions({ limit: 1000, type: detailType, startDate: firstDay, endDate: lastDay });
+        // Thay vì chỉ gọi type: detailType
+const res = await transactionsApi.getTransactions({ 
+    limit: 1000, 
+    // Nếu đang ở tab Expense, lấy cả Saving
+    type: detailType === 'expense' ? ['expense', 'saving'] : 'income', 
+    startDate: firstDay, 
+    endDate: lastDay 
+});
         
         const txs = res.data || [];
         let total = 0; const groups = {};
         
         txs.forEach(tx => {
-          const catId = tx.category?.id || 'other';
-          const catName = tx.category?.name || 'Khác';
-          const catColor = tx.category?.color || accentColor; 
-          const catLimit = tx.category?.limit || 0; 
-          
-          if (!groups[catId]) groups[catId] = { id: catId, name: catName, amount: 0, color: catColor, limit: catLimit };
-          groups[catId].amount += tx.amount;
-          total += tx.amount;
-        });
+  const catId = tx.category?.id || 'other';
+  // ... (giữ nguyên logic catName, catColor, catLimit)
+
+  // LOGIC CỐT LÕI: Cộng cả 'expense' VÀ 'saving' vào nhóm danh mục đó
+  if (tx.type === 'expense' || tx.type === 'saving') {
+     if (!groups[catId]) groups[catId] = { id: catId, name: catName, amount: 0, color: catColor, limit: catLimit };
+     groups[catId].amount += tx.amount;
+     total += tx.amount;
+  }
+});
 
         const formatted = Object.values(groups)
           .map(g => {

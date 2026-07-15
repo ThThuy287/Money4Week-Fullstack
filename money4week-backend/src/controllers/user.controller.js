@@ -11,6 +11,7 @@ class UserController {
   async updateProfile(req, res, next) {
     try {
       await userService.updateProfile(req.user.id, req.body);
+      await userService.updateSettings(req.user.id, req.body);
       res.json({ message: 'Cập nhật hồ sơ thành công' });
     } catch (error) { next(error); }
   }
