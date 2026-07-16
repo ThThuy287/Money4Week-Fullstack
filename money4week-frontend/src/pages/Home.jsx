@@ -509,11 +509,11 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profileRes?.cyc
                       <div className="flex items-center gap-2 lg:gap-3">
                         <div className="w-8 h-8 rounded-xl bg-[#BA1A1A]/10 flex items-center justify-center shrink-0"><Zap size={16} className="text-[#BA1A1A]" /></div>
                         <div className="flex flex-col overflow-hidden">
-                          <span className="font-sans font-medium text-[13px] lg:text-[14px] text-[#1B1C1D] truncate">{reminder.title}</span>
+                          <span className="font-sans font-medium text-[13px] lg:text-[14px] text-[#1B1C1D] truncate">{reminder.title || reminder.name}</span>
                           <span className="font-sans text-[10px] text-brand-text">{displayDate}</span>
                         </div>
                       </div>
-                      <span className="font-sans font-semibold text-[13px] lg:text-[14px] text-[#BA1A1A] shrink-0 ml-2">- {formatVND(reminder.amount)}</span>
+                      <span className="font-sans font-semibold text-[13px] lg:text-[14px] text-[#BA1A1A] shrink-0 ml-2">- {formatVND(reminder.amount || reminder.target_amount)}</span>
                     </div>
                   );
                 })
