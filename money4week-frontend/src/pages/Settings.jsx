@@ -89,7 +89,10 @@ const Settings = () => {
 const cType = res.cycle_type || '4_weeks';
 setCycleType(cType);
 
-const anchor = res.cycle_anchor_date || '';
+let anchor = res.cycle_anchor_date || '';
+if (anchor && anchor.includes('T')) {
+  anchor = anchor.split('T')[0];
+}
 setStartDate(anchor);
 
         if (res.email) {

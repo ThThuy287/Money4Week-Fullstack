@@ -49,21 +49,47 @@ const Home = () => {
           remindersApi.getReminders().catch(() => []),
           usersApi.getProfile().catch(() => null)
         ]);
-        
-        if (data && Array.isArray(data.upcoming_reminders)) {
-          data.upcoming_reminders = data.upcoming_reminders.filter(r => {
-            const targetAmt = Number(r.amount || r.target_amount || 0);
-            const currentAmt = Number(r.current_amount || r.saved || 0);
-            return (targetAmt - currentAmt) > 0 && !r.is_completed;
-          });
-        }
-        
-        setDashboardData(data); setNotes(data?.user_notes || []);
+
         let remindersList = [];
         if (Array.isArray(remindersRes)) remindersList = remindersRes;
         else if (Array.isArray(remindersRes?.data)) remindersList = remindersRes.data;
         else if (Array.isArray(remindersRes?.reminders)) remindersList = remindersRes.reminders;
         if (remindersList.length === 0 && Array.isArray(data?.upcoming_reminders)) remindersList = data.upcoming_reminders;
+
+        const todayDate = new Date(); todayDate.setHours(0, 0, 0, 0);
+        const computedEvents = [];
+
+        remindersList.forEach(r => {
+          let deadline = new Date(r.deadline || r.due_date || r.date);
+          if (isNaN(deadline.getTime())) return;
+          deadline.setHours(0, 0, 0, 0);
+
+          let hasShifted = false;
+          while (deadline < todayDate) {
+            deadline.setMonth(deadline.getMonth() + 1);
+            hasShifted = true;
+          }
+
+          if (hasShifted) {
+            r.current_amount = 0;
+            r.saved = 0;
+            r.is_completed = false;
+          }
+
+          const fmtDate = `${deadline.getFullYear()}-${String(deadline.getMonth() + 1).padStart(2, '0')}-${String(deadline.getDate()).padStart(2, '0')}`;
+          r.due_date = fmtDate;
+          r.deadline = fmtDate;
+          r.date = fmtDate;
+
+          computedEvents.push(fmtDate);
+        });
+
+        if (data) {
+          data.upcoming_reminders = [...remindersList].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+          data.calendar_events = Array.from(new Set([...(data.calendar_events || []), ...computedEvents]));
+        }
+
+        setDashboardData(data); setNotes(data?.user_notes || []);
 
         const now = new Date(); now.setHours(0, 0, 0, 0); 
         let sumWeekly = 0;
