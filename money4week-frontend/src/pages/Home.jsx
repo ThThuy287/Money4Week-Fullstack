@@ -49,6 +49,15 @@ const Home = () => {
           remindersApi.getReminders().catch(() => []),
           usersApi.getProfile().catch(() => null)
         ]);
+        
+        if (data && Array.isArray(data.upcoming_reminders)) {
+          data.upcoming_reminders = data.upcoming_reminders.filter(r => {
+            const targetAmt = Number(r.amount || r.target_amount || 0);
+            const currentAmt = Number(r.current_amount || r.saved || 0);
+            return (targetAmt - currentAmt) > 0 && !r.is_completed;
+          });
+        }
+        
         setDashboardData(data); setNotes(data?.user_notes || []);
         let remindersList = [];
         if (Array.isArray(remindersRes)) remindersList = remindersRes;

@@ -768,7 +768,7 @@ const res = await transactionsApi.getTransactions({
               
               <div className="flex flex-col lg:grid lg:grid-cols-[1fr_328px] gap-6 lg:gap-8">
                 {/* Cột trái: Input form */}
-                <div className="flex flex-col gap-5 lg:gap-6">
+                <div className="flex flex-col gap-5 lg:gap-6 min-w-0">
                   <div className="flex flex-col gap-2">
                     <label className="font-sans font-semibold text-[11px] lg:text-[12px] text-[#1B1C1D] uppercase tracking-[0.3px]">Tên mục tiêu</label>
                     <input type="text" value={goalName} onChange={(e) => setGoalName(e.target.value)} placeholder="VD: Mua Laptop, Học phí..." className="w-full h-[48px] lg:h-[49px] px-4 py-3 bg-[#F5F3F4] border border-[#C3C6D5]/30 rounded-lg font-sans text-[14px] lg:text-[16px] text-[#1B1C1D] placeholder-[#6B7280] focus:outline-none focus:border-[#094CB2] focus:ring-1 focus:ring-[#094CB2]" />

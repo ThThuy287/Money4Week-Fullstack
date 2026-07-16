@@ -86,10 +86,11 @@ const Settings = () => {
         setAvatarPreview(res.avatar_url || null);
         
         // Thay đổi thành:
-const cType = localStorage.getItem('userCycleType') || res.cycle_type || '4_weeks';
+const cType = res.cycle_type || '4_weeks';
 setCycleType(cType);
 
-const anchor = localStorage.getItem('userCycleAnchor') || res.cycle_anchor_date;
+const anchor = res.cycle_anchor_date || '';
+setStartDate(anchor);
 
         if (res.email) {
           setEmail(res.email);
