@@ -32,6 +32,7 @@ const Home = () => {
   const [totalWeeklyTarget, setTotalWeeklyTarget] = useState(0); 
   const [currentIncome, setCurrentIncome] = useState(0);
   const [currentExpense, setCurrentExpense] = useState(0);
+  const [currentSaving, setCurrentSaving] = useState(0); // Thêm state này
   const [dynamicChart, setDynamicChart] = useState([]);
   const [cycleName, setCycleName] = useState('4 Tuần');
   const [incomeChange, setIncomeChange] = useState({ percent: 0, isIncrease: true });
@@ -186,19 +187,39 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profileRes?.cyc
             tempStart.setHours(0,0,0,0);
         }
 
-        let cIncome = 0; let cExpense = 0;
+        let cIncome = 0; let cExpense = 0; let cSaving = 0;
         currTxs.forEach(tx => {
             const amt = Number(tx.amount || 0);
             const txDate = parseSafeDate(tx.date || tx.transaction_date);
             
             if (tx.type === 'income') cIncome += amt;
-            else if (tx.type === 'expense' || tx.type === 'saving') cExpense += amt;
+            else if (tx.type === 'expense') cExpense += amt;
+            else if (tx.type === 'saving') cSaving += amt;
             
             for(let i=0; i<4; i++) {
                 if (txDate >= chartData[i].start && txDate <= chartData[i].end) {
                     if (tx.type === 'income') chartData[i].income += amt;
-                    else if (tx.type === 'expense' || tx.type === 'saving') chartData[i].expense += amt;
+                    else if (tx.type === 'expense') chartData[i].expense += amt;
                     break;
+                }
+            }
+        });
+
+        // 1. Cộng dồn số tiền mục tiêu "khi tới hạn" vào Tổng chi (chu kỳ này)
+        remindersList.forEach(item => {
+            const dueDate = parseSafeDate(item.due_date || item.deadline || item.date);
+            if (!isNaN(dueDate.getTime())) {
+                const checkDate = new Date(dueDate);
+                checkDate.setHours(0, 0, 0, 0);
+                if (checkDate >= currentStart && checkDate <= currentEnd) {
+                    const amt = Number(item.amount || item.target_amount || 0);
+                    cExpense += amt;
+                    for (let i = 0; i < 4; i++) {
+                        if (checkDate >= chartData[i].start && checkDate <= chartData[i].end) {
+                            chartData[i].expense += amt;
+                            break;
+                        }
+                    }
                 }
             }
         });
@@ -206,15 +227,35 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profileRes?.cyc
         let pIncome = 0; let pExpense = 0;
         prevTxs.forEach(tx => {
             const amt = Number(tx.amount || 0);
-            
             if (tx.type === 'income') pIncome += amt;
-            else if (tx.type === 'expense' || tx.type === 'saving') pExpense += amt;
+            else if (tx.type === 'expense') pExpense += amt;
         });
+
+        // 2. Cập nhật chi phí mục tiêu của chu kỳ trước (để so sánh % thay đổi chính xác)
+        remindersList.forEach(item => {
+            const dueDate = parseSafeDate(item.due_date || item.deadline || item.date);
+            if (!isNaN(dueDate.getTime())) {
+                const checkDate = new Date(dueDate);
+                checkDate.setHours(0, 0, 0, 0);
+                if (checkDate >= prevStart && checkDate <= prevEnd) {
+                    pExpense += Number(item.amount || item.target_amount || 0);
+                }
+            }
+        });
+
+        // 3. Cập nhật State để UI hiển thị được số liệu (Dòng bị thiếu trong bản cũ)
+        setCurrentIncome(cIncome);
+        setCurrentExpense(cExpense);
+        setCurrentSaving(cSaving);
+        setDynamicChart(chartData);
 
         if (pIncome === 0) setIncomeChange({ percent: cIncome > 0 ? 100 : 0, isIncrease: cIncome >= pIncome });
         else { const diff = ((cIncome - pIncome) / pIncome) * 100; setIncomeChange({ percent: Math.abs(Math.round(diff)), isIncrease: diff >= 0 }); }
         if (pExpense === 0) setExpenseChange({ percent: cExpense > 0 ? 100 : 0, isIncrease: cExpense >= pExpense });
         else { const diff = ((cExpense - pExpense) / pExpense) * 100; setExpenseChange({ percent: Math.abs(Math.round(diff)), isIncrease: diff >= 0 }); }
+        
+        // Cập nhật state để biểu đồ nhận dữ liệu
+        setDynamicChart(chartData);
       } catch (err) { setApiError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại mạng hoặc tải lại trang.'); } finally { setIsLoading(false); }
     };
     fetchDashboardData();
@@ -356,9 +397,9 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profileRes?.cyc
 
         <div className="flex flex-col items-start p-4 lg:p-6 gap-1 lg:gap-2 bg-white border border-[#094CB2]/20 rounded-lg shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
           <div className="absolute w-[96px] h-[96px] right-[-23px] top-[-23px] bg-[#094CB2]/5 blur-[20px] rounded-xl z-0"></div>
-          <span className="font-sans font-semibold text-[12px] leading-4 tracking-[0.3px] uppercase text-[#B1C5FF] z-10">Số dư hiện tại</span>
+          <span className="font-sans font-semibold text-[12px] leading-4 tracking-[0.3px] uppercase text-[#B1C5FF] z-10">Tiền để dành</span>
           <div className="flex items-baseline gap-1 mt-1 z-10">
-            <span className="font-serif font-bold text-[24px] lg:text-[30px] leading-8 lg:leading-9 text-[#094CB2]">{formatVND(overview.current_balance)}</span>
+            <span className="font-serif font-bold text-[24px] lg:text-[30px] leading-8 lg:leading-9 text-[#094CB2]">{formatVND(currentSaving)}</span>
             <span className="font-serif font-normal text-[14px] lg:text-[18px] text-[#094CB2]/70">VNĐ</span>
           </div>
         </div>
