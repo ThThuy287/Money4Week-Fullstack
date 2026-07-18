@@ -5,6 +5,7 @@ import transactionsApi from '../api/transactionsApi';
 import usersApi from '../api/usersApi'; 
 import walletsApi from '../api/walletsApi'; 
 import { X } from 'lucide-react';
+import remindersApi from '../api/remindersApi';
 
 const COLORS = ["#F97316", "#3B82F6", "#EAB308", "#A855F7", "#16A34A", "#EC4899", "#06B6D4"];
 
@@ -136,13 +137,16 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
         reportsApi.getReportData(exactStart, exactEnd).catch(() => []),
         reportsApi.getCategories().catch(() => []),
         walletsApi.getHistory().catch(() => []),
-        targetsApi.getAll().catch(() => []) // Lấy danh sách mục tiêu
+        remindersApi.getReminders().catch(() => []) // <--- THAY THẾ Ở ĐÂY
       ]);
       
       setRawTransactions(Array.isArray(transRes) ? transRes : (transRes?.data || []));
       setDbCategories(Array.isArray(catRes) ? catRes : (catRes?.data || []));
       setRawSavings(Array.isArray(savingsRes) ? savingsRes : (savingsRes?.data || [])); 
-      setRawTargets(Array.isArray(targetsRes) ? targetsRes : (targetsRes?.data || [])); // Lưu mục tiêu vào state 
+      
+      // Khai báo an toàn mảng mục tiêu trả về
+      setRawTargets(Array.isArray(targetsRes) ? targetsRes : (targetsRes?.data || [])); 
+
     } catch (err) {
       showError("Không thể lấy dữ liệu báo cáo. Vui lòng thử lại!");
     } finally {
