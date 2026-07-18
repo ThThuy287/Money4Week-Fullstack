@@ -5,6 +5,7 @@ import transactionsApi from '../api/transactionsApi';
 import usersApi from '../api/usersApi'; 
 import walletsApi from '../api/walletsApi'; 
 import { X } from 'lucide-react';
+import targetsApi from '../api/targetsApi';
 
 const COLORS = ["#F97316", "#3B82F6", "#EAB308", "#A855F7", "#16A34A", "#EC4899", "#06B6D4"];
 
@@ -43,6 +44,7 @@ const Reports = () => {
   
   const [rawTransactions, setRawTransactions] = useState([]);
   const [rawSavings, setRawSavings] = useState([]); 
+  const [rawTargets, setRawTargets] = useState([]);
   const [dbCategories, setDbCategories] = useState([]);
   
   const [cycleInfo, setCycleInfo] = useState(initCycle());
@@ -131,15 +133,17 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
       const exactEnd = fmtYMD(end);
       setCycleInfo({ weekOptions: ranges, startDate: exactStart, endDate: exactEnd });
 
-      const [transRes, catRes, savingsRes] = await Promise.all([
+      const [transRes, catRes, savingsRes, targetsRes] = await Promise.all([
         reportsApi.getReportData(exactStart, exactEnd).catch(() => []),
         reportsApi.getCategories().catch(() => []),
-        walletsApi.getHistory().catch(() => []) 
+        walletsApi.getHistory().catch(() => []),
+        targetsApi.getAll().catch(() => []) // Lấy danh sách mục tiêu
       ]);
       
       setRawTransactions(Array.isArray(transRes) ? transRes : (transRes?.data || []));
       setDbCategories(Array.isArray(catRes) ? catRes : (catRes?.data || []));
       setRawSavings(Array.isArray(savingsRes) ? savingsRes : (savingsRes?.data || [])); 
+      setRawTargets(Array.isArray(targetsRes) ? targetsRes : (targetsRes?.data || [])); // Lưu mục tiêu vào state 
     } catch (err) {
       showError("Không thể lấy dữ liệu báo cáo. Vui lòng thử lại!");
     } finally {
@@ -206,6 +210,43 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
           id: tx.id || Math.random().toString(),
           weekId: targetWeekId, catId: catId, category: catName, detail: tx.note || "Giao dịch chi tiêu",
           amount: amount, color: catColor, iconBg: `bg-[${catColor}20]`, iconColor: `text-[${catColor}]`
+        });
+      }
+    });
+    rawTargets.forEach(item => {
+      const dueDate = parseSafeDate(item.due_date || item.deadline || item.date);
+      const amount = Number(item.amount || item.target_amount || 0);
+      
+      if (isNaN(dueDate.getTime()) || amount === 0) return;
+
+      let targetWeekId = null;
+      for (let i = 0; i < weekOptions.length; i++) {
+        if (dueDate >= weekOptions[i].startObj && dueDate <= weekOptions[i].endObj) {
+          targetWeekId = weekOptions[i].id;
+          wData[i].chi += amount; // Cộng nhồi tiền mục tiêu vào biểu đồ Cột (Tổng chi)
+          break;
+        }
+      }
+
+      if (targetWeekId) {
+        const catId = 'target_expense';
+        const catName = 'Mục tiêu tới hạn';
+        const catColor = '#8B5CF6'; // Màu tím đặc trưng để dễ phân biệt trên Donut Chart
+        
+        if (!catWeeklyTotals[catId]) catWeeklyTotals[catId] = { w1: 0, w2: 0, w3: 0, w4: 0 };
+        catWeeklyTotals[catId][targetWeekId] += amount;
+
+        // Đẩy mục tiêu vào bảng danh mục bên dưới
+        expenses.push({
+          id: item.id || `target-${Math.random()}`,
+          weekId: targetWeekId, 
+          catId: catId, 
+          category: catName, 
+          detail: item.name || item.note || "Đóng tiền mục tiêu",
+          amount: amount, 
+          color: catColor, 
+          iconBg: `bg-[${catColor}20]`, 
+          iconColor: `text-[${catColor}]`
         });
       }
     });

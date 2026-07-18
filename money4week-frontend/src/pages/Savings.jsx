@@ -5,6 +5,7 @@ import {
   Car, Home, Utensils, Luggage, PiggyBank, Zap, Droplet, Wifi, Smartphone, Wallet
 } from 'lucide-react';
 import walletsApi from '../api/walletsApi';
+import transactionsApi from '../api/transactionsApi';
 
 const colors = ['#094CB2', '#F59E0B', '#F43F5E', '#A855F7', '#16A34A'];
 
@@ -264,7 +265,19 @@ const Savings = () => {
     if (!depositAmount || depositAmountNum <= 0) { showError('Vui lòng nhập số tiền nạp hợp lệ!'); return; }
     try {
       setIsSubmitting(true);
+      // 1. Nạp tiền vào ví
       await walletsApi.deposit(selectedWallet.id, { amount: depositAmountNum, date: depositDate, note: depositNote });
+      
+      // 2. Ghi nhận là khoản chi
+      await transactionsApi.createTransaction({
+        category_id: null,
+        type: 'expense',
+        amount: depositAmountNum,
+        date: depositDate,
+        transaction_date: depositDate,
+        note: depositNote ? `[Nạp ví] ${depositNote}` : `Nạp tiền vào ví: ${selectedWallet.title}`
+      });
+
       showSuccess('Nạp tiền vào ví thành công!');
       fetchData(); setIsDepositModalOpen(false);
     } catch (err) { showError(err.response?.data?.message || 'Có lỗi xảy ra khi nạp tiền!'); } 
