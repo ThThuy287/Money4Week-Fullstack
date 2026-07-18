@@ -32,7 +32,7 @@ const Home = () => {
   const [totalWeeklyTarget, setTotalWeeklyTarget] = useState(0); 
   const [currentIncome, setCurrentIncome] = useState(0);
   const [currentExpense, setCurrentExpense] = useState(0);
-  const [currentSaving, setCurrentSaving] = useState(0); // Thêm state này
+  const [currentSaving, setCurrentSaving] = useState(0);
   const [dynamicChart, setDynamicChart] = useState([]);
   const [cycleName, setCycleName] = useState('4 Tuần');
   const [incomeChange, setIncomeChange] = useState({ percent: 0, isIncrease: true });
@@ -40,7 +40,6 @@ const Home = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState(null);
 
-  // [Giữ nguyên logic UseEffect API]
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -59,6 +58,7 @@ const Home = () => {
 
         const todayDate = new Date(); todayDate.setHours(0, 0, 0, 0);
         const computedEvents = [];
+        const updatePromises = []; 
 
         remindersList.forEach(r => {
           let deadline = new Date(r.deadline || r.due_date || r.date);
@@ -71,19 +71,35 @@ const Home = () => {
             hasShifted = true;
           }
 
+          const fmtDate = `${deadline.getFullYear()}-${String(deadline.getMonth() + 1).padStart(2, '0')}-${String(deadline.getDate()).padStart(2, '0')}`;
+
           if (hasShifted) {
             r.current_amount = 0;
             r.saved = 0;
             r.is_completed = false;
-          }
+            r.due_date = fmtDate;
+            r.deadline = fmtDate;
+            r.date = fmtDate;
 
-          const fmtDate = `${deadline.getFullYear()}-${String(deadline.getMonth() + 1).padStart(2, '0')}-${String(deadline.getDate()).padStart(2, '0')}`;
-          r.due_date = fmtDate;
-          r.deadline = fmtDate;
-          r.date = fmtDate;
+            if (remindersApi.updateReminder) {
+                updatePromises.push(
+                    remindersApi.updateReminder(r.id, {
+                        ...r, deadline: fmtDate, due_date: fmtDate, date: fmtDate, current_amount: 0, saved: 0, is_completed: false
+                    }).catch(() => null)
+                );
+            }
+          } else {
+             r.due_date = fmtDate;
+             r.deadline = fmtDate;
+             r.date = fmtDate;
+          }
 
           computedEvents.push(fmtDate);
         });
+
+        if (updatePromises.length > 0) {
+            Promise.all(updatePromises);
+        }
 
         if (data) {
           data.upcoming_reminders = [...remindersList].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
@@ -112,9 +128,8 @@ const Home = () => {
         });
         setTotalWeeklyTarget(Math.round(sumWeekly));
 
-        // Thay đổi thành:
-const cycleType = localStorage.getItem('userCycleType') || profileRes?.cycle_type || '4_weeks';
-const anchorDateStr = localStorage.getItem('userCycleAnchor') || profileRes?.cycle_anchor_date;
+        const cycleType = localStorage.getItem('userCycleType') || profileRes?.cycle_type || '4_weeks';
+        const anchorDateStr = localStorage.getItem('userCycleAnchor') || profileRes?.cycle_anchor_date;
         if (cycleType === '1_month') setCycleName('Tháng này');
         else if (cycleType === '30_days') setCycleName('30 Ngày');
         else setCycleName('4 Tuần');
@@ -139,6 +154,22 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profileRes?.cyc
           if (new Date().getTime() < currentStart.getTime()) currentStart.setMonth(currentStart.getMonth() - 1);
         }
 
+        // ========================================================
+        // 🚀 CƠ CHẾ AUTO-ROLLOVER: LƯU VẾT CHU KỲ NHƯNG KHÔNG XÓA DATA
+        // ========================================================
+        const currentStartKey = currentStart.getTime().toString();
+        const lastProcessedCycle = localStorage.getItem('lastProcessedCycle');
+
+        if (lastProcessedCycle && lastProcessedCycle !== currentStartKey) {
+            console.log("Phát hiện chu kỳ mới! Đã dời Mục tiêu. Dữ liệu Thu/Chi tự động lọc lại (không xóa).");
+            localStorage.setItem('lastProcessedCycle', currentStartKey);
+            window.location.reload(); // Reload nhẹ để làm sạch bộ nhớ tạm của UI
+            return; 
+        } else if (!lastProcessedCycle) {
+            localStorage.setItem('lastProcessedCycle', currentStartKey);
+        }
+        // ========================================================
+
         let currentEnd = new Date(currentStart);
         if (cycleType === '4_weeks') currentEnd.setDate(currentStart.getDate() + 27);
         else if (cycleType === '30_days') currentEnd.setDate(currentStart.getDate() + 29);
@@ -156,6 +187,8 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profileRes?.cyc
         prevStart.setHours(0,0,0,0); prevEnd.setHours(23,59,59,999);
 
         const fmtYMD = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        
+        // Cụm API này sẽ tự động chỉ lấy giao dịch thuộc khoảng thời gian hiện tại
         const [currTransRes, prevTransRes] = await Promise.all([
             reportsApi.getReportData(fmtYMD(currentStart), fmtYMD(currentEnd)).catch(() => ({ data: [] })),
             reportsApi.getReportData(fmtYMD(prevStart), fmtYMD(prevEnd)).catch(() => ({ data: [] }))
@@ -205,7 +238,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profileRes?.cyc
             }
         });
 
-        // 1. Cộng dồn số tiền mục tiêu "khi tới hạn" vào Tổng chi (chu kỳ này)
         remindersList.forEach(item => {
             const dueDate = parseSafeDate(item.due_date || item.deadline || item.date);
             if (!isNaN(dueDate.getTime())) {
@@ -231,7 +263,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profileRes?.cyc
             else if (tx.type === 'expense') pExpense += amt;
         });
 
-        // 2. Cập nhật chi phí mục tiêu của chu kỳ trước (để so sánh % thay đổi chính xác)
         remindersList.forEach(item => {
             const dueDate = parseSafeDate(item.due_date || item.deadline || item.date);
             if (!isNaN(dueDate.getTime())) {
@@ -243,7 +274,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profileRes?.cyc
             }
         });
 
-        // 3. Cập nhật State để UI hiển thị được số liệu (Dòng bị thiếu trong bản cũ)
         setCurrentIncome(cIncome);
         setCurrentExpense(cExpense);
         setCurrentSaving(cSaving);
@@ -254,7 +284,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profileRes?.cyc
         if (pExpense === 0) setExpenseChange({ percent: cExpense > 0 ? 100 : 0, isIncrease: cExpense >= pExpense });
         else { const diff = ((cExpense - pExpense) / pExpense) * 100; setExpenseChange({ percent: Math.abs(Math.round(diff)), isIncrease: diff >= 0 }); }
         
-        // Cập nhật state để biểu đồ nhận dữ liệu
         setDynamicChart(chartData);
       } catch (err) { setApiError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại mạng hoặc tải lại trang.'); } finally { setIsLoading(false); }
     };
@@ -433,16 +462,13 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profileRes?.cyc
                     </div>
                   </div>
 
-                  {/* BIỂU ĐỒ: Xóa overflow-x-auto, dùng flex-1 và justify-between để tự ép vừa 100% màn hình */}
                   <div className="w-full pb-2 mt-4">
                     <div className="flex flex-row items-end pt-4 pb-6 pl-8 pr-1 lg:px-8 justify-between h-[200px] lg:h-[256px] border-b border-brand-border/30 relative w-full">
                       
-                      {/* Trục Y: Ép cứng width để không lấn sang cột biểu đồ */}
                       <div className="absolute left-0 top-0 bottom-[24px] flex flex-col justify-between items-start text-[10px] lg:text-[12px] text-brand-text/50 font-sans w-8">
                         {yLabels.map((val, idx) => (<span key={idx}>{formatCompact(val)}</span>))}
                       </div>
 
-                      {/* Các cột dữ liệu: Dùng flex-1 chia đều */}
                       {dynamicChart.map((weekData, index) => (
                         <div key={index} className="flex flex-row items-end gap-1 sm:gap-1.5 lg:gap-2 h-full relative flex-1 justify-center group">
                           
@@ -450,7 +476,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profileRes?.cyc
                             Thu: {formatVND(weekData.income)}<br/>Chi: {formatVND(weekData.expense)}
                           </div>
                           
-                          {/* Width thanh bar thu nhỏ gọn gàng trên Mobile (w-3 sm:w-5) */}
                           <div className="w-3 sm:w-5 lg:w-8 bg-[#2E7D32]/80 rounded-t-sm transition-all duration-700 ease-out" style={{ height: getHeight(weekData.income) }}></div>
                           <div className="w-3 sm:w-5 lg:w-8 bg-[#BA1A1A]/80 rounded-t-sm transition-all duration-700 ease-out" style={{ height: getHeight(weekData.expense) }}></div>
                           
@@ -469,11 +494,9 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profileRes?.cyc
             })()}
           </div>
 
-          {/* 3 THẺ THỐNG KÊ NHỎ: Rút gọn text, căn giữa, tự động xuống dòng (line-clamp) thay vì cắt chữ */}
           {(() => {
             const savingRate = dashboardData?.overview?.saving_rate || 0;
             const highestExpense = dashboardData?.overview?.highest_expense;
-            // Chữ "Chưa có dữ liệu" quá dài, rút gọn thành "Chưa có"
             const highestExpenseText = highestExpense ? `${highestExpense.name}` : "Chưa có"; 
             const savingRateText = savingRate > 0 ? `${savingRate}%` : "0%";
             
@@ -565,7 +588,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profileRes?.cyc
           <div className="bg-white border border-brand-border rounded-lg p-4 lg:p-6 shadow-sm flex flex-col gap-3 lg:gap-4">
             <div className="flex justify-between items-center w-full">
               <h3 className="font-serif font-semibold text-[16px] lg:text-[18px] text-[#1B1C1D] m-0">Ghi chú</h3>
-              {/* Button min 44x44 on mobile */}
               <button onClick={() => setIsAddingNote(true)} className="w-10 h-10 lg:w-8 lg:h-8 bg-[#094CB2] shadow-sm rounded-xl flex items-center justify-center cursor-pointer hover:bg-blue-700 transition-colors">
                 <Plus size={20} lg:size={16} className="text-white" strokeWidth={3} />
               </button>
@@ -578,7 +600,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profileRes?.cyc
                     <input type="checkbox" checked={note.completed} onChange={() => toggleNote(note.id)} className="w-5 h-5 lg:w-4 lg:h-4 rounded-sm border-[#C3C6D5] accent-[#094CB2] cursor-pointer shrink-0" />
                     <span className={`font-sans text-[13px] lg:text-[14px] transition-all duration-200 mt-0.5 lg:mt-0 ${note.completed ? 'text-brand-text line-through' : 'text-[#1B1C1D]'}`}>{note.text}</span>
                   </label>
-                  {/* Luôn hiện nút xóa trên mobile, hover trên desktop */}
                   <button onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }} className="opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity text-[#BA1A1A] lg:text-gray-400 lg:hover:text-[#BA1A1A] p-2 lg:p-1 rounded-md cursor-pointer shrink-0"><X size={18} lg:size={14} strokeWidth={2.5} /></button>
                 </div>
               ))}

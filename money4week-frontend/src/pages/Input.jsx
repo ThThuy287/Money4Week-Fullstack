@@ -154,11 +154,22 @@ const res = await transactionsApi.getTransactions({
         
         txs.forEach(tx => {
   const catId = tx.category?.id || 'other';
-  // ... (giữ nguyên logic catName, catColor, catLimit)
+  
+  // KHẮC PHỤC: Khai báo lại các biến bị thiếu
+  const catName = tx.category?.name || 'Khác';
+  const catColor = tx.category?.color || (detailType === 'expense' ? '#BA1A1A' : '#16A34A');
+  const catLimit = tx.category?.limit_amount || 0;
 
   // LOGIC CỐT LÕI: Cộng cả 'expense' VÀ 'saving' vào nhóm danh mục đó
-  if (tx.type === 'expense' || tx.type === 'saving') {
-     if (!groups[catId]) groups[catId] = { id: catId, name: catName, amount: 0, color: catColor, limit: catLimit };
+  // Lưu ý: Nếu đang ở tab 'income' thì logic này hiện tại đang bỏ qua thu nhập. 
+  // Bạn nên cập nhật lại điều kiện if để chart hiển thị đúng theo tab.
+  if (
+    (detailType === 'expense' && (tx.type === 'expense' || tx.type === 'saving')) || 
+    (detailType === 'income' && tx.type === 'income')
+  ) {
+     if (!groups[catId]) {
+         groups[catId] = { id: catId, name: catName, amount: 0, color: catColor, limit: catLimit };
+     }
      groups[catId].amount += tx.amount;
      total += tx.amount;
   }
