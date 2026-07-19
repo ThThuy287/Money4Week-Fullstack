@@ -140,52 +140,52 @@ const Input = () => {
         const firstDay = `${yyyy}-${mm}-01`;
         const lastDay = `${yyyy}-${mm}-${lastDayNum}`;
 
-        // Thay vì chỉ gọi type: detailType
-const res = await transactionsApi.getTransactions({ 
-    limit: 1000, 
-    // Nếu đang ở tab Expense, lấy cả Saving
-    type: detailType === 'expense' ? ['expense', 'saving'] : 'income', 
-    startDate: firstDay, 
-    endDate: lastDay 
-});
+        const res = await transactionsApi.getTransactions({ 
+            limit: 1000, 
+            type: detailType === 'expense' ? ['expense', 'saving'] : 'income', 
+            startDate: firstDay, 
+            endDate: lastDay 
+        });
         
         const txs = res.data || [];
         let total = 0; const groups = {};
         
         txs.forEach(tx => {
-  const catId = tx.category?.id || 'other';
-  
-  // KHẮC PHỤC: Khai báo lại các biến bị thiếu
-  const catName = tx.category?.name || 'Khác';
-  const catColor = tx.category?.color || (detailType === 'expense' ? '#BA1A1A' : '#16A34A');
-  const catLimit = tx.category?.limit_amount || 0;
+          const catId = tx.category?.id || 'other';
+          const catName = tx.category?.name || 'Khác';
+          const catColor = tx.category?.color || (detailType === 'expense' ? '#BA1A1A' : '#16A34A');
+          const catLimit = tx.category?.limit_amount || 0;
 
-  // LOGIC CỐT LÕI: Cộng cả 'expense' VÀ 'saving' vào nhóm danh mục đó
-  // Lưu ý: Nếu đang ở tab 'income' thì logic này hiện tại đang bỏ qua thu nhập. 
-  // Bạn nên cập nhật lại điều kiện if để chart hiển thị đúng theo tab.
-  if (
-    (detailType === 'expense' && (tx.type === 'expense' || tx.type === 'saving')) || 
-    (detailType === 'income' && tx.type === 'income')
-  ) {
-     if (!groups[catId]) {
-         groups[catId] = { id: catId, name: catName, amount: 0, color: catColor, limit: catLimit };
-     }
-     groups[catId].amount += tx.amount;
-     total += tx.amount;
-  }
-});
+          if (
+            (detailType === 'expense' && (tx.type === 'expense' || tx.type === 'saving')) || 
+            (detailType === 'income' && tx.type === 'income')
+          ) {
+             if (!groups[catId]) {
+                 groups[catId] = { id: catId, name: catName, amount: 0, color: catColor, limit: catLimit };
+             }
+             
+             // FIX: Chặn lỗi NaN bằng cách ép kiểu về số, nếu rỗng/lỗi thì lấy giá trị 0
+             const safeAmount = Number(tx.amount) || 0;
+             
+             groups[catId].amount += safeAmount;
+             total += safeAmount;
+          }
+        });
 
         const formatted = Object.values(groups)
           .map(g => {
              const fallbackCat = allCategories.find(c => c.id === g.id);
              const finalLimit = Number(g.limit) || Number(fallbackCat?.limit_amount) || 0;
+             
+             // FIX: Chắc chắn thêm 1 lớp bảo vệ nữa trước khi tính toán phần trăm
+             const safeGroupAmount = Number(g.amount) || 0;
 
              return {
                 id: g.id,
                 category: g.name.toUpperCase(),
-                rawAmount: g.amount,
-                amount: Number(g.amount).toLocaleString('vi-VN'),
-                width: total > 0 ? `${Math.round((g.amount / total) * 100)}%` : '0%',
+                rawAmount: safeGroupAmount,
+                amount: safeGroupAmount.toLocaleString('vi-VN'),
+                width: total > 0 ? `${Math.round((safeGroupAmount / total) * 100)}%` : '0%',
                 color: g.color,
                 limit: finalLimit
              };
@@ -197,7 +197,7 @@ const res = await transactionsApi.getTransactions({
       finally { setIsLoadingDetails(false); }
     };
     fetchAndAnalyzeDetails();
-  }, [detailType, recentTransactions, allCategories]); 
+  }, [detailType, recentTransactions, allCategories]);
 
   const displayDetails = showAllDetails ? groupedDetails : groupedDetails.slice(0, 4);
 

@@ -132,7 +132,9 @@ const Savings = () => {
       try {
         await walletsApi.deleteWallet(id);
         showSuccess('Đã xóa ví tiết kiệm thành công!');
-        fetchData();
+        
+        // FIX: Thêm await ở đây
+        await fetchData(); 
       } catch (err) { showError('Không thể xóa ví. Vui lòng thử lại!'); }
     }
     setOpenMenuId(null);
@@ -236,7 +238,9 @@ const Savings = () => {
         showSuccess('Tạo ví tiết kiệm mới thành công!');
       }
       
-      fetchData(); setIsModalOpen(false);
+      // FIX: Thêm await ở đây
+      await fetchData(); 
+      setIsModalOpen(false);
     } catch (err) { showError(err.response?.data?.message || 'Có lỗi xảy ra khi lưu ví tiết kiệm!'); } 
     finally { setIsSubmitting(false); }
   };
@@ -279,7 +283,10 @@ const Savings = () => {
       });
 
       showSuccess('Nạp tiền vào ví thành công!');
-      fetchData(); setIsDepositModalOpen(false);
+      
+      // FIX: Thêm await để hệ thống chờ lấy xong dữ liệu mới rồi mới đóng Modal
+      await fetchData(); 
+      setIsDepositModalOpen(false);
     } catch (err) { showError(err.response?.data?.message || 'Có lỗi xảy ra khi nạp tiền!'); } 
     finally { setIsSubmitting(false); }
   };
