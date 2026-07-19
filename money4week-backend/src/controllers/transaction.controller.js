@@ -31,6 +31,25 @@ class TransactionController {
       next(error);
     }
   }
+  async updateTransaction(req, res, next) {
+    try {
+      const { category_id, type, amount, transaction_date } = req.body;
+      
+      // Kiểm tra dữ liệu bắt buộc (tương tự lúc tạo)
+      if (!category_id || !type || amount === undefined || !transaction_date) {
+        throw new ApiError(400, 'VALIDATION_ERROR', 'Vui lòng điền đủ thông tin bắt buộc');
+      }
+      
+      if (amount <= 0) {
+        throw new ApiError(422, 'UNPROCESSABLE_ENTITY', 'Số tiền giao dịch phải lớn hơn 0');
+      }
+
+      await transactionService.updateTransaction(req.user.id, req.params.id, req.body);
+      res.status(200).json({ message: 'Cập nhật giao dịch thành công' });
+    } catch (error) {
+      next(error);
+    }
+  }
 
   async deleteTransaction(req, res, next) {
     try {

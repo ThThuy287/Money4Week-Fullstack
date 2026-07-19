@@ -12,6 +12,7 @@ router.get('/', transactionController.getTransactions);
 
 // 2. Thêm giao dịch mới
 router.post('/', transactionController.createTransaction);
+router.put('/:id', transactionController.updateTransaction);
 // Thêm dòng này vào khu vực chứa các router:
 router.delete('/reset', transactionController.resetTransactions);
 

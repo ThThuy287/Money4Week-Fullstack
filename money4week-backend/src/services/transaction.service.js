@@ -60,5 +60,17 @@ class TransactionService {
   async resetTransactions(userId) {
     await getPool().query(`DELETE FROM transactions WHERE user_id = $1`, [userId]); 
   }
+  async updateTransaction(userId, transactionId, data) {
+    const pool = getPool();
+    const result = await pool.query(`
+      UPDATE transactions 
+      SET category_id = $1, type = $2, amount = $3, transaction_date = $4, note = $5
+      WHERE id = $6 AND user_id = $7 AND deleted_at IS NULL
+    `, [data.category_id, data.type, data.amount, data.transaction_date, data.note || '', transactionId, userId]);
+    
+    if (result.rowCount === 0) {
+      throw new ApiError(404, 'NOT_FOUND', 'Không tìm thấy giao dịch hoặc đã bị xóa');
+    }
+  }
 }
 module.exports = new TransactionService();
