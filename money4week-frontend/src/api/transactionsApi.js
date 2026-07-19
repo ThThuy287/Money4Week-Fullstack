@@ -5,6 +5,7 @@ const transactionsApi = {
   createTransaction: async (data) => await axiosClient.post('/transactions', data),
   deleteTransaction: async (id) => await axiosClient.delete(`/transactions/${id}`),
   resetTransactions: async () => await axiosClient.delete('/transactions/reset'),
+  updateTransaction: async (id, data) => await axiosClient.put(`/transactions/${id}`, data),
 
   // Thêm _t: Date.now() để phá cache trình duyệt
   getCategories: async (type) => await axiosClient.get('/categories', { params: { type, _t: Date.now() } }),

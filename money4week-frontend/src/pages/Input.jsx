@@ -3,7 +3,7 @@ import {
   Wallet, Plus, Save, Building2, BookOpen, Laptop, ShieldCheck,
   ChevronDown, CalendarDays, CheckCircle2, X,
   Utensils, Banknote, BusFront, ShoppingBag,
-  GraduationCap, Home, Plane, MoreHorizontal
+  GraduationCap, Home, Plane, MoreHorizontal, Edit2, Trash2 // Thêm Edit2, Trash2
 } from 'lucide-react';
 import { NumericFormat } from 'react-number-format';
 import transactionsApi from '../api/transactionsApi';
@@ -23,6 +23,32 @@ const Input = () => {
   // ==========================================
   // KHỐI 1: STATE CHO FORM GIAO DỊCH (THU/CHI)
   // ==========================================
+  const [editingTransId, setEditingTransId] = useState(null); // Quản lý ID đang sửa
+
+  // Lệnh click Sửa: Đổ dữ liệu cũ lên Form
+  const handleEditClick = (item) => {
+    setTransactionType(item.type === 'income' ? 'income' : 'expense');
+    setTransAmount(Number(item.amount).toLocaleString('vi-VN'));
+    const dateStr = item.date || item.transaction_date || getTodayFormatted();
+    setTransactionDate(dateStr.split('T')[0]);
+    setSelectedCatId(item.category?.id || '');
+    setTransNote(item.note || '');
+    setEditingTransId(item.id); // Đánh dấu là đang sửa
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // Cuộn lên form
+  };
+
+  // Lệnh click Xóa
+  const handleDeleteTransaction = async (id) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa giao dịch này?')) return;
+    try {
+      await transactionsApi.deleteTransaction(id);
+      setTransSuccess('Đã xóa giao dịch thành công!');
+      fetchRecentTransactions(); 
+      setTimeout(() => setTransSuccess(null), 3000);
+    } catch (err) {
+      setTransError('Không thể xóa giao dịch. Vui lòng thử lại!');
+    }
+  };
   const [transactionType, setTransactionType] = useState('expense');
   
   const getTodayFormatted = () => {
@@ -83,16 +109,26 @@ const Input = () => {
       setIsSubmittingTrans(true);
       const rawAmount = parseInt(String(transAmount).replace(/\./g, ''), 10);
       
-      await transactionsApi.createTransaction({
+      const payload = {
         category_id: isNaN(Number(selectedCatId)) ? selectedCatId : Number(selectedCatId),
         type: transactionType,
         amount: rawAmount,
         date: transactionDate, 
         transaction_date: transactionDate, 
         note: transNote
-      });
+      };
 
-      setTransSuccess('Thêm giao dịch thành công!');
+      if (editingTransId) {
+        // Nếu có ID đang sửa -> Gọi API Cập nhật
+        await transactionsApi.updateTransaction(editingTransId, payload);
+        setTransSuccess('Cập nhật giao dịch thành công!');
+        setEditingTransId(null);
+      } else {
+        // Không có -> Gọi API Tạo mới
+        await transactionsApi.createTransaction(payload);
+        setTransSuccess('Thêm giao dịch thành công!');
+      }
+
       setTransAmount(''); setTransNote('');
       fetchRecentTransactions(); 
       setTimeout(() => setTransSuccess(null), 3000);
@@ -470,10 +506,33 @@ const Input = () => {
             </div>
           </div>
 
-          <button type="button" onClick={handleSaveTransaction} disabled={isSubmittingTrans} className={`mt-6 lg:mt-8 w-full h-[50px] lg:h-[56px] rounded-xl flex items-center justify-center gap-2 transition-opacity shadow-md ${isSubmittingTrans ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-[#094CB2] to-[#3366CC] hover:opacity-90'}`}>
-            <Save size={18} className="text-white" />
-            <span className="font-sans font-bold text-[14px] lg:text-[16px] text-white tracking-[0.7px]">{isSubmittingTrans ? 'Đang xử lý...' : 'Lưu giao dịch'}</span>
-          </button>
+          <div className="flex gap-3 mt-6 lg:mt-8 w-full">
+            {editingTransId && (
+              <button 
+                type="button" 
+                onClick={() => {
+                  setEditingTransId(null);
+                  setTransAmount('');
+                  setTransNote('');
+                }} 
+                disabled={isSubmittingTrans}
+                className="w-1/3 h-[50px] lg:h-[56px] rounded-xl flex items-center justify-center bg-[#E9E8E9] hover:bg-gray-300 transition-colors text-[#1B1C1D] font-bold text-[14px] lg:text-[16px]"
+              >
+                Hủy
+              </button>
+            )}
+            <button 
+              type="button" 
+              onClick={handleSaveTransaction} 
+              disabled={isSubmittingTrans} 
+              className={`${editingTransId ? 'w-2/3' : 'w-full'} h-[50px] lg:h-[56px] rounded-xl flex items-center justify-center gap-2 transition-opacity shadow-md ${isSubmittingTrans ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-[#094CB2] to-[#3366CC] hover:opacity-90'}`}
+            >
+              <Save size={18} className="text-white" />
+              <span className="font-sans font-bold text-[14px] lg:text-[16px] text-white tracking-[0.7px]">
+                {isSubmittingTrans ? 'Đang xử lý...' : (editingTransId ? 'Cập nhật' : 'Lưu giao dịch')}
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* CỘT LỊCH SỬ BÊN PHẢI */}
@@ -491,7 +550,7 @@ const Input = () => {
                 const dateParts = dateStr.split('T')[0].split('-');
 
                 return (
-                  <div key={item.id} className="flex justify-between items-center py-3 rounded-lg hover:bg-gray-50 px-2 transition-colors cursor-pointer">
+                  <div key={item.id} className="flex justify-between items-center py-3 rounded-lg hover:bg-gray-50 px-2 transition-colors group">
                     <div className="flex items-center gap-3">
                       <IconComp size={16} className={colorHex} />
                       <div className="flex flex-col">
@@ -499,7 +558,22 @@ const Input = () => {
                         <span className="font-sans italic text-[10px] lg:text-[11px] text-[#434653]">{`${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`}</span>
                       </div>
                     </div>
-                    <span className={`font-sans font-bold text-[13px] lg:text-[14px] ${colorHex}`}>{sign} {Number(item.amount).toLocaleString('vi-VN')} VNĐ</span>
+                    
+                    <div className="flex items-center gap-3 lg:gap-4">
+                      <span className={`font-sans font-bold text-[13px] lg:text-[14px] ${colorHex}`}>
+                        {sign} {Number(item.amount).toLocaleString('vi-VN')} VNĐ
+                      </span>
+                      
+                      {/* Cụm nút Sửa / Xóa */}
+                      <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleEditClick(item)} className="p-1.5 text-[#094CB2] hover:bg-blue-50 rounded-md transition-colors" title="Sửa">
+                          <Edit2 size={14} />
+                        </button>
+                        <button onClick={() => handleDeleteTransaction(item.id)} className="p-1.5 text-[#BA1A1A] hover:bg-red-50 rounded-md transition-colors" title="Xóa">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 );
               })
