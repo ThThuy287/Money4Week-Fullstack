@@ -3,6 +3,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 
+// THÊM DÒNG NÀY: Import kết nối Database để đánh thức Neon
+const { getPool } = require('./config/db');
 
 const errorHandler = require('./middlewares/error.middleware');
 const authRoutes = require('./routes/auth.routes');
@@ -44,6 +46,7 @@ app.use(cors({
   },
   credentials: true // Cho phép gửi Token/Cookie
 }));
+
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 300,
@@ -54,7 +57,6 @@ const globalLimiter = rateLimit({
 app.use('/api', globalLimiter);
 
 // Lớp giáp 2: Khắt khe với API Đăng nhập / Đăng ký (Chống dò mật khẩu)
-// Tối đa 15 requests / 10 phút trên mỗi IP
 const authLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, 
   max: 15,
@@ -75,6 +77,20 @@ app.use('/api/reminders', reminderRoutes);
 app.use('/api/notes', noteRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/categories', categoryRoutes);
+
+// ==========================================
+// ENDPOINT ĐÁNH THỨC SERVER & DATABASE (UPTIMEROBOT)
+// Đặt NGAY TRƯỚC khối bắt lỗi 404
+// ==========================================
+app.get('/api/ping', async (req, res) => {
+  try {
+    // Chạy một câu lệnh SQL siêu nhẹ để giữ kết nối Database không bị ngủ đông
+    await getPool().query('SELECT 1'); 
+    res.status(200).send('Server and Database Money4Week are perfectly alive!');
+  } catch (error) {
+    res.status(500).send('Server is alive, but Database connection failed.');
+  }
+});
 
 // Bắt lỗi 404 (Route không tồn tại)
 app.use((req, res) => {
