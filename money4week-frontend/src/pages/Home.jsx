@@ -426,9 +426,11 @@ const Home = () => {
 
         <div className="flex flex-col items-start p-4 lg:p-6 gap-1 lg:gap-2 bg-white border border-[#094CB2]/20 rounded-lg shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
           <div className="absolute w-[96px] h-[96px] right-[-23px] top-[-23px] bg-[#094CB2]/5 blur-[20px] rounded-xl z-0"></div>
-          <span className="font-sans font-semibold text-[12px] leading-4 tracking-[0.3px] uppercase text-[#B1C5FF] z-10">Tiền để dành</span>
+          <span className="font-sans font-semibold text-[12px] leading-4 tracking-[0.3px] uppercase text-[#B1C5FF] z-10">Số dư</span>
           <div className="flex items-baseline gap-1 mt-1 z-10">
-            <span className="font-serif font-bold text-[24px] lg:text-[30px] leading-8 lg:leading-9 text-[#094CB2]">{formatVND(currentSaving)}</span>
+            <span className="font-serif font-bold text-[24px] lg:text-[30px] leading-8 lg:leading-9 text-[#094CB2]">
+  {formatVND(currentIncome - currentExpense)}
+</span>
             <span className="font-serif font-normal text-[14px] lg:text-[18px] text-[#094CB2]/70">VNĐ</span>
           </div>
         </div>
