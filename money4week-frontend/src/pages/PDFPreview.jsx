@@ -106,15 +106,17 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
         setDateString(`${fmtDMY(currentStart)} - ${fmtDMY(currentEnd)}`);
         setCycleDates({ currStart: currentStart, currEnd: currentEnd, prevStart: prevStart, prevEnd: prevEnd });
 
-        const [currRes, prevRes, savingsRes] = await Promise.all([
+        const [currRes, prevRes, savingsRes, targetsRes] = await Promise.all([
           reportsApi.getReportData(fmtYMD(currentStart), fmtYMD(currentEnd)).catch(() => ({ data: [] })),
           reportsApi.getReportData(fmtYMD(prevStart), fmtYMD(prevEnd)).catch(() => ({ data: [] })),
-          walletsApi.getHistory().catch(() => []) 
+          walletsApi.getHistory().catch(() => []),
+          remindersApi.getReminders().catch(() => []) // Bổ sung API lấy mục tiêu
         ]);
 
         setCurrTransactions(Array.isArray(currRes) ? currRes : (currRes?.data || []));
         setPrevTransactions(Array.isArray(prevRes) ? prevRes : (prevRes?.data || []));
         setRawSavings(Array.isArray(savingsRes) ? savingsRes : (savingsRes?.data || []));
+        setRawTargets(Array.isArray(targetsRes) ? targetsRes : (targetsRes?.data || [])); // Lưu data mục tiêu
 
       } catch (err) {
         setGlobalError("Không thể tạo báo cáo chi tiết do lỗi kết nối.");
@@ -161,16 +163,45 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
       else if (!isSaving && tx.type === 'expense') prevChi += amt;
     });
 
-    rawSavings.forEach(sv => {
-      if (sv.type === 'withdraw' || sv.desc?.toLowerCase().includes('rút')) return; 
+    // BỔ SUNG XỬ LÝ MỤC TIÊU VÀO TỔNG CHI
+    rawTargets.forEach(item => {
+      const dueDate = parseSafeDate(item.due_date || item.deadline || item.date);
+      const amount = Number(item.amount || item.target_amount || 0);
       
+      if (isNaN(dueDate.getTime()) || amount === 0) return;
+
+      if (currStart && currEnd && dueDate >= currStart && dueDate <= currEnd) {
+        currChi += amount;
+        const catName = 'Mục tiêu tới hạn';
+        currExpenseGroups[catName] = (currExpenseGroups[catName] || 0) + amount;
+
+        // Đẩy vào danh sách để hiện ở Bảng giao dịch bên dưới PDF
+        currentTxsList.push({
+          transaction_date: dueDate.toISOString(),
+          category: { name: catName },
+          type: 'expense',
+          amount: amount
+        });
+      } else if (prevStart && prevEnd && dueDate >= prevStart && dueDate <= prevEnd) {
+        prevChi += amount;
+      }
+    });
+
+    // SỬA LOGIC TIẾT KIỆM (CỘNG NẠP, TRỪ RÚT)
+    rawSavings.forEach(sv => {
       const amt = parseInt(String(sv.amount || 0).replace(/\D/g, ''), 10) || 0;
       let svDate = parseSafeDate(sv.date || sv.created_at || sv.transaction_date);
 
+      if (isNaN(svDate.getTime()) || amt === 0) return;
+
+      const isWithdraw = sv.type === 'withdraw' || sv.desc?.toLowerCase().includes('rút');
+
       if (currStart && currEnd && svDate >= currStart && svDate <= currEnd) {
-          currSaved += amt;
+          if (isWithdraw) currSaved -= amt;
+          else currSaved += amt;
       } else if (prevStart && prevEnd && svDate >= prevStart && svDate <= prevEnd) {
-          prevSaved += amt;
+          if (isWithdraw) prevSaved -= amt;
+          else prevSaved += amt;
       }
     });
 
