@@ -319,6 +319,9 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
     return { thu, chi, cycleSaved, rate };
   }, [timeFilter, weeklyData]);
 
+  const isNegativeSaving = summaryData.cycleSaved < 0;
+
+  // 2. Bên trong donutData thì XÓA dòng cũ đi
   const donutData = useMemo(() => {
     const filteredExps = timeFilter === 'all' ? rawExpenses : rawExpenses.filter(e => e.weekId === timeFilter);
     const grouped = {};
@@ -329,8 +332,8 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
       grouped[e.catId].amount += e.amount;
       totalChi += e.amount;
     });
-    // KIỂM TRA TRẠNG THÁI TIẾT KIỆM
-  const isNegativeSaving = summaryData.cycleSaved < 0;
+
+    // KHÔNG CẦN KHAI BÁO isNegativeSaving Ở TRONG NÀY NỮA ❌
 
     const categories = Object.values(grouped).map(cat => ({
       ...cat, pct: totalChi > 0 ? Math.round((cat.amount / totalChi) * 100) : 0

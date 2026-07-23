@@ -320,6 +320,20 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
   return (
     <div className="flex flex-col min-h-screen bg-[#F5F3F4] lg:bg-gradient-to-b lg:from-[#DBDADB] lg:to-[#DBDADB] print:bg-none print:bg-white">
       
+      {/* BỔ SUNG ĐOẠN STYLE NÀY ĐỂ FIX LỖI MẤT MÀU KHI IN PDF */}
+      <style type="text/css" media="print">
+        {`
+          @page { 
+            size: A4 portrait; 
+            margin: 8mm; /* Giúp chừa lề đẹp và đánh bay URL/Ngày tháng mặc định của trình duyệt */
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+        `}
+      </style>
+      
       {/* ====== TOP TOOLBAR (Responsive) ====== */}
       <header className="sticky top-0 z-20 flex justify-between items-center px-4 lg:px-6 py-3 lg:py-4 bg-white shadow-sm print:hidden border-b border-[#E3E2E3]/50">
         <div className="flex flex-col">

@@ -290,17 +290,8 @@ const Savings = () => {
     } catch (err) { showError(err.response?.data?.message || 'Có lỗi xảy ra khi nạp tiền!'); } 
     finally { setIsSubmitting(false); }
   };
-
-  if (isLoading && wallets.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center w-full h-[70vh] gap-4">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#094CB2]"></div>
-        <p className="font-sans text-[#737784]">Đang đồng bộ dữ liệu ví tiết kiệm...</p>
-      </div>
-    );
-  }
   // ==========================================
-  // 6. MODAL: RÚT TIỀN
+  // 6. MODAL: RÚT TIỀN (👇 CẮT TỪ DƯỚI ĐEM LÊN ĐÂY)
   // ==========================================
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
@@ -318,6 +309,7 @@ const Savings = () => {
   };
 
   const withdrawAmountNum = parseInt(String(withdrawAmount).replace(/\D/g, '')) || 0;
+  // Lưu ý: currentBalanceNum đã được khai báo ở phần Rút tiền phía trên, có thể dùng lại ngay
   const newBalanceAfterWithdraw = currentBalanceNum - withdrawAmountNum;
 
   const handleConfirmWithdraw = async () => {
@@ -326,10 +318,8 @@ const Savings = () => {
     
     try {
       setIsSubmitting(true);
-      // 1. Rút tiền khỏi ví (Bạn nhớ thêm method withdraw vào file walletsApi.js nhé)
       await walletsApi.withdraw(selectedWallet.id, { amount: withdrawAmountNum, date: withdrawDate, note: withdrawNote });
       
-      // 2. Ghi nhận là khoản THU (Vì tiền từ ví tiết kiệm quay trở lại túi của bạn)
       await transactionsApi.createTransaction({
         category_id: null,
         type: 'income',
@@ -345,6 +335,16 @@ const Savings = () => {
     } catch (err) { showError(err.response?.data?.message || 'Có lỗi xảy ra khi rút tiền!'); } 
     finally { setIsSubmitting(false); }
   };
+
+  if (isLoading && wallets.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center w-full h-[70vh] gap-4">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#094CB2]"></div>
+        <p className="font-sans text-[#737784]">Đang đồng bộ dữ liệu ví tiết kiệm...</p>
+      </div>
+    );
+  }
+  
   return (
     <div className="flex flex-col gap-6 lg:gap-10 w-full max-w-[1152px] mx-auto px-4 lg:px-0 pb-10 relative">
       
