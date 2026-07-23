@@ -31,6 +31,12 @@ class WalletController {
       res.json({ message: 'Nạp tiền thành công' });
     } catch (error) { next(error); }
   }
+  async withdraw(req, res, next) {
+    try {
+      await walletService.withdraw(req.user.id, req.params.id, req.body);
+      res.json({ message: 'Rút tiền thành công' });
+    } catch (error) { next(error); }
+  }
   async getHistory(req, res, next) {
     try {
       const history = await walletService.getHistory(req.user.id);

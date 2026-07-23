@@ -12,5 +12,6 @@ router.post('/', walletController.createWallet);
 router.put('/:id', walletController.updateWallet);
 router.delete('/:id', walletController.deleteWallet);
 router.post('/:id/deposit', walletController.deposit); // Nhận lệnh Nạp Tiền
+router.post('/:id/withdraw', walletController.withdraw); // Nhận lệnh Rút Tiền
 
 module.exports = router;

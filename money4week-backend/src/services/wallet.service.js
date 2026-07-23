@@ -45,6 +45,24 @@ class WalletService {
       VALUES ($1, 'deposit', $2, 'manual', $3, $4)
     `, [walletId, data.amount, data.date || new Date(), data.note || 'Nạp tiền vào ví']);
   }
+  // Bổ sung hàm withdraw
+  async withdraw(userId, walletId, data) {
+    const pool = getPool();
+    
+    // Cập nhật trừ tiền trong ví (Dùng GREATEST để tránh số dư bị âm dưới 0)
+    await pool.query(`
+      UPDATE wallets 
+      SET current_amount = GREATEST(COALESCE(current_amount, 0) - $1, 0),
+          is_completed = CASE WHEN (COALESCE(current_amount, 0) - $1) >= COALESCE(target_amount, 0) THEN TRUE ELSE FALSE END
+      WHERE id = $2 AND user_id = $3
+    `, [data.amount, walletId, userId]);
+
+    // Lưu lịch sử giao dịch (type là 'withdraw')
+    await pool.query(`
+      INSERT INTO wallet_transactions (wallet_id, type, amount, source, transaction_date, note) 
+      VALUES ($1, 'withdraw', $2, 'manual', $3, $4)
+    `, [walletId, data.amount, data.date || new Date(), data.note || 'Rút tiền khỏi ví']);
+  }
 
   // Sửa hàm getHistory
   async getHistory(userId) {

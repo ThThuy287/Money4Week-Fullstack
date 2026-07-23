@@ -299,7 +299,52 @@ const Savings = () => {
       </div>
     );
   }
+  // ==========================================
+  // 6. MODAL: RÚT TIỀN
+  // ==========================================
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawDate, setWithdrawDate] = useState('');
+  const [withdrawNote, setWithdrawNote] = useState('');
 
+  const handleWithdrawAmountChange = (e) => setWithdrawAmount(formatInputNumber(e.target.value));
+
+  const handleOpenWithdraw = (wallet) => {
+    setSelectedWallet(wallet); 
+    setWithdrawDate(getTodayFormatted());
+    setWithdrawAmount(''); 
+    setWithdrawNote(''); 
+    setIsWithdrawModalOpen(true);
+  };
+
+  const withdrawAmountNum = parseInt(String(withdrawAmount).replace(/\D/g, '')) || 0;
+  const newBalanceAfterWithdraw = currentBalanceNum - withdrawAmountNum;
+
+  const handleConfirmWithdraw = async () => {
+    if (!withdrawAmount || withdrawAmountNum <= 0) { showError('Vui lòng nhập số tiền rút hợp lệ!'); return; }
+    if (withdrawAmountNum > currentBalanceNum) { showError('Số dư ví không đủ để rút!'); return; }
+    
+    try {
+      setIsSubmitting(true);
+      // 1. Rút tiền khỏi ví (Bạn nhớ thêm method withdraw vào file walletsApi.js nhé)
+      await walletsApi.withdraw(selectedWallet.id, { amount: withdrawAmountNum, date: withdrawDate, note: withdrawNote });
+      
+      // 2. Ghi nhận là khoản THU (Vì tiền từ ví tiết kiệm quay trở lại túi của bạn)
+      await transactionsApi.createTransaction({
+        category_id: null,
+        type: 'income',
+        amount: withdrawAmountNum,
+        date: withdrawDate,
+        transaction_date: withdrawDate,
+        note: withdrawNote ? `[Rút ví] ${withdrawNote}` : `Rút tiền từ ví: ${selectedWallet.title}`
+      });
+
+      showSuccess('Rút tiền khỏi ví thành công!');
+      await fetchData(); 
+      setIsWithdrawModalOpen(false);
+    } catch (err) { showError(err.response?.data?.message || 'Có lỗi xảy ra khi rút tiền!'); } 
+    finally { setIsSubmitting(false); }
+  };
   return (
     <div className="flex flex-col gap-6 lg:gap-10 w-full max-w-[1152px] mx-auto px-4 lg:px-0 pb-10 relative">
       
@@ -411,9 +456,14 @@ const Savings = () => {
                     </div>
                   </div>
 
-                  <button onClick={() => handleOpenDeposit(wallet)} className="w-full py-2.5 lg:py-2 bg-[#E9E8E9] hover:bg-gray-200 transition-colors rounded-lg font-sans font-medium text-[13px] lg:text-[14px] text-[#094CB2] mt-1 cursor-pointer min-h-[44px]">
-                    Nạp tiền
-                  </button>
+                  <div className="flex items-center gap-2 mt-1 w-full">
+  <button onClick={() => handleOpenWithdraw(wallet)} className="flex-1 py-2.5 lg:py-2 bg-white border border-[#E3E2E3] hover:bg-gray-50 transition-colors rounded-lg font-sans font-medium text-[13px] lg:text-[14px] text-[#434653] cursor-pointer min-h-[44px]">
+    Rút tiền
+  </button>
+  <button onClick={() => handleOpenDeposit(wallet)} className="flex-1 py-2.5 lg:py-2 bg-[#E9E8E9] hover:bg-gray-200 transition-colors rounded-lg font-sans font-medium text-[13px] lg:text-[14px] text-[#094CB2] cursor-pointer min-h-[44px]">
+    Nạp tiền
+  </button>
+</div>
                 </div>
               </div>
             );
@@ -801,6 +851,100 @@ const Savings = () => {
                 className={`w-full sm:flex-[1.5] py-3 rounded-lg font-sans font-bold text-[13px] sm:text-[14px] text-white transition-colors cursor-pointer min-h-[44px] ${isSubmitting ? 'bg-gray-400' : 'bg-[#094CB2] hover:bg-blue-800'}`}
               >
                 {isSubmitting ? 'Đang xử lý...' : 'Xác nhận nạp'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 6. MODAL RÚT TIỀN */}
+      {isWithdrawModalOpen && selectedWallet && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6 animate-fade-in">
+          <div className="bg-white rounded-xl lg:rounded-2xl shadow-2xl w-full max-w-[480px] flex flex-col p-5 sm:p-8 gap-5 lg:gap-6 animate-slide-up relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <button
+              type="button"
+              onClick={() => setIsWithdrawModalOpen(false)}
+              className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
+            >
+              <X size={20} className="text-[#1B1C1D]" />
+            </button>
+            
+            <div className="flex flex-col gap-1 sm:gap-2 w-full pr-10">
+              <h2 className="font-serif font-bold text-[22px] sm:text-[28px] text-[#1B1C1D] m-0">Rút tiền khỏi ví</h2>
+              <div className="flex items-center gap-2">
+                <selectedWallet.icon size={16} style={{ color: selectedWallet.color }} />
+                <span className="font-sans font-bold text-[13px] sm:text-[14px]" style={{ color: selectedWallet.color }}>
+                  {selectedWallet.title}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-4 sm:gap-5 w-full">
+              <div className="flex flex-col gap-1.5 sm:gap-2">
+                <label className="font-sans font-bold text-[10px] sm:text-[11px] text-[#434653] uppercase tracking-[0.5px]">Số tiền rút</label>
+                <div className="relative w-full">
+                  <input
+                    type="text" value={withdrawAmount} onChange={handleWithdrawAmountChange}
+                    placeholder="0"
+                    className="w-full h-[48px] pl-4 pr-12 bg-[#F5F3F4] rounded-lg font-sans font-bold text-[15px] sm:text-[16px] text-[#1B1C1D] focus:outline-none focus:border-[#BA1A1A] focus:ring-1 focus:ring-[#BA1A1A]"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 font-sans font-bold text-[13px] sm:text-[14px] text-[#434653]">VNĐ</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5 sm:gap-2">
+                <label className="font-sans font-bold text-[10px] sm:text-[11px] text-[#434653] uppercase tracking-[0.5px]">Ngày giao dịch</label>
+                <div className="relative w-full">
+                  <input
+                    type="date"
+                    value={withdrawDate}
+                    onChange={(e) => setWithdrawDate(e.target.value)}
+                    className="w-full h-[48px] px-4 bg-[#F5F3F4] rounded-lg font-sans text-[14px] sm:text-[15px] text-[#1B1C1D] focus:outline-none focus:border-[#BA1A1A] focus:ring-1 focus:ring-[#BA1A1A] [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5 sm:gap-2">
+                <label className="font-sans font-bold text-[10px] sm:text-[11px] text-[#434653] uppercase tracking-[0.5px]">Ghi chú (Tùy chọn)</label>
+                <textarea
+                  value={withdrawNote}
+                  onChange={(e) => setWithdrawNote(e.target.value)}
+                  placeholder="Nhập ghi chú tại đây..."
+                  className="w-full h-[70px] sm:h-[80px] p-3 sm:p-4 bg-[#F5F3F4] rounded-lg font-sans text-[14px] sm:text-[15px] text-[#1B1C1D] focus:outline-none focus:border-[#BA1A1A] focus:ring-1 focus:ring-[#BA1A1A] resize-none"
+                ></textarea>
+              </div>
+
+              <div className="flex flex-col p-4 sm:p-5 gap-2 sm:gap-3 bg-[#F5F3F4] rounded-xl mt-1">
+                <div className="flex justify-between items-center w-full">
+                  <span className="font-sans text-[12px] sm:text-[13px] text-[#434653]">Số dư hiện tại</span>
+                  <span className="font-sans font-medium text-[12px] sm:text-[13px] text-[#1B1C1D]">
+                    {currentBalanceNum.toLocaleString('vi-VN')} VNĐ
+                  </span>
+                </div>
+                <div className="flex justify-between items-center w-full pt-2 border-t border-[#C3C6D5]/30">
+                  <span className="font-sans text-[12px] sm:text-[13px] text-[#434653]">Số dư sau khi rút</span>
+                  <span className={`font-sans font-bold text-[13px] sm:text-[14px] ${newBalanceAfterWithdraw < 0 ? 'text-[#BA1A1A]' : 'text-[#094CB2]'}`}>
+                    {newBalanceAfterWithdraw.toLocaleString('vi-VN')} VNĐ
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse sm:flex-row justify-center gap-3 sm:gap-4 w-full mt-1 sm:mt-2">
+              <button
+                type="button"
+                onClick={() => setIsWithdrawModalOpen(false)}
+                disabled={isSubmitting}
+                className="w-full sm:flex-1 py-3 bg-white hover:bg-gray-50 border border-[#E3E2E3] rounded-lg font-sans font-bold text-[13px] sm:text-[14px] text-[#1B1C1D] transition-colors cursor-pointer min-h-[44px]"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmWithdraw}
+                disabled={isSubmitting}
+                className={`w-full sm:flex-[1.5] py-3 rounded-lg font-sans font-bold text-[13px] sm:text-[14px] text-white transition-colors cursor-pointer min-h-[44px] ${isSubmitting ? 'bg-gray-400' : 'bg-[#BA1A1A] hover:bg-red-800'}`}
+              >
+                {isSubmitting ? 'Đang xử lý...' : 'Xác nhận rút'}
               </button>
             </div>
           </div>

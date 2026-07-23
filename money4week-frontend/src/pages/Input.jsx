@@ -93,7 +93,19 @@ const Input = () => {
   const fetchRecentTransactions = async () => {
     try {
       setIsLoadingHistory(true);
-      const res = await transactionsApi.getTransactions({ limit: 5 });
+      
+      // Tính toán ngày đầu và ngày cuối của chu kỳ (tháng hiện tại)
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const lastDayNum = new Date(yyyy, today.getMonth() + 1, 0).getDate();
+      
+      // Lấy toàn bộ danh sách, không giới hạn 5 cái nữa
+      const res = await transactionsApi.getTransactions({ 
+          limit: 1000, 
+          startDate: `${yyyy}-${mm}-01`,
+          endDate: `${yyyy}-${mm}-${lastDayNum}`
+      });
       setRecentTransactions(res.data || []); 
     } catch (err) { console.error('Lỗi tải lịch sử:', err); } 
     finally { setIsLoadingHistory(false); }
@@ -540,9 +552,20 @@ const Input = () => {
           <div className="flex justify-between items-end border-b border-[#E3E2E3]/40 pb-3 lg:pb-4 mb-3 lg:mb-4">
             <h3 className="font-sans font-bold text-[16px] lg:text-[18px] text-[#1B1C1D] m-0">Lịch sử Gần đây</h3>
           </div>
-          <div className="flex flex-col gap-1">
-            {isLoadingHistory ? ( <div className="flex justify-center py-4 text-sm text-gray-500">Đang tải...</div> ) : recentTransactions.length === 0 ? ( <div className="flex justify-center py-4 text-sm text-gray-500 italic">Chưa có giao dịch</div> ) : (
-              recentTransactions.map((item) => {
+          
+          {/* Thêm max-h và overflow-y-auto để có thanh cuộn dọc khi lịch sử quá dài */}
+          <div className="flex flex-col gap-1 max-h-[450px] overflow-y-auto custom-scrollbar pr-2">
+            {isLoadingHistory ? ( 
+              <div className="flex justify-center py-4 text-sm text-gray-500">Đang tải...</div> 
+            ) : (() => {
+              // Lọc dữ liệu theo tab đang chọn (Thu hoặc Chi)
+              const filteredHistory = recentTransactions.filter(item => item.type === transactionType);
+              
+              if (filteredHistory.length === 0) {
+                return <div className="flex justify-center py-4 text-sm text-gray-500 italic">Chưa có giao dịch</div>;
+              }
+
+              return filteredHistory.map((item) => {
                 const IconComp = item.type === 'income' ? Banknote : Utensils; 
                 const colorHex = item.type === 'income' ? 'text-[#16A34A]' : 'text-[#BA1A1A]';
                 const sign = item.type === 'income' ? '+' : '-';
@@ -564,7 +587,7 @@ const Input = () => {
                         {sign} {Number(item.amount).toLocaleString('vi-VN')} VNĐ
                       </span>
                       
-                      {/* Cụm nút Sửa / Xóa */}
+                      {/* Cụm nút Sửa / Xóa (đã được bạn setup ẩn/hiện khi hover bằng Tailwind) */}
                       <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                         <button onClick={() => handleEditClick(item)} className="p-1.5 text-[#094CB2] hover:bg-blue-50 rounded-md transition-colors" title="Sửa">
                           <Edit2 size={14} />
@@ -576,8 +599,8 @@ const Input = () => {
                     </div>
                   </div>
                 );
-              })
-            )}
+              });
+            })()}
           </div>
         </div>
       </div>

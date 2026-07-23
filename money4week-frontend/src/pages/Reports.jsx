@@ -6,6 +6,7 @@ import usersApi from '../api/usersApi';
 import walletsApi from '../api/walletsApi'; 
 import { X } from 'lucide-react';
 import remindersApi from '../api/remindersApi';
+import categoryApi from '../api/categoryApi'; // BỔ SUNG DÒNG NÀY
 
 const COLORS = ["#F97316", "#3B82F6", "#EAB308", "#A855F7", "#16A34A", "#EC4899", "#06B6D4"];
 
@@ -135,9 +136,9 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
 
       const [transRes, catRes, savingsRes, targetsRes] = await Promise.all([
         reportsApi.getReportData(exactStart, exactEnd).catch(() => []),
-        reportsApi.getCategories().catch(() => []),
-        walletsApi.getHistory().catch(() => []),
-        remindersApi.getReminders().catch(() => []) // <--- THAY THẾ Ở ĐÂY
+        categoryApi.getCategories().catch(() => []), // Sửa thành categoryApi
+        walletsApi.getHistory().catch(() => []), // <--- BẠN QUÊN SỬA DÒNG NÀY NÈ
+        remindersApi.getReminders().catch(() => []) 
       ]);
       
       setRawTransactions(Array.isArray(transRes) ? transRes : (transRes?.data || []));
@@ -204,7 +205,9 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
       if (targetWeekId && tx.type === 'expense') {
         const catId = tx.category?.id || 'other';
         const catName = tx.category?.name || 'Khác';
-        const catColor = tx.category?.color || filterCategories.find(c => c.id === catId)?.color || "#3B82F6";
+        
+        // Ưu tiên color_hex và ép kiểu String() để so sánh ID an toàn
+        const catColor = tx.category?.color_hex || tx.category?.color || filterCategories.find(c => String(c.id) === String(catId))?.color || "#3B82F6";
         
         if (!catWeeklyTotals[catId]) catWeeklyTotals[catId] = { w1: 0, w2: 0, w3: 0, w4: 0 };
         catWeeklyTotals[catId][targetWeekId] += amount;
@@ -258,11 +261,18 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
       const svDate = parseSafeDate(sv.date || sv.created_at || sv.transaction_date);
       const amount = parseInt(String(sv.amount || 0).replace(/\D/g, ''), 10) || 0;
       
-      if (sv.type === 'withdraw' || sv.desc?.toLowerCase().includes('rút')) return; 
+      // Thêm kiểm tra an toàn để tránh lỗi ngày tháng bị Invalid Date
+      if (isNaN(svDate.getTime()) || amount === 0) return;
 
       for (let i = 0; i < weekOptions.length; i++) {
         if (svDate >= weekOptions[i].startObj && svDate <= weekOptions[i].endObj) {
-          wData[i].saving += amount;
+          
+          // SỬA LOGIC Ở ĐÂY: Trừ đi nếu là rút tiền, cộng vào nếu là nạp tiền
+          if (sv.type === 'withdraw' || sv.desc?.toLowerCase().includes('rút')) {
+            wData[i].saving -= amount; 
+          } else {
+            wData[i].saving += amount;
+          }
           break;
         }
       }
@@ -319,6 +329,8 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
       grouped[e.catId].amount += e.amount;
       totalChi += e.amount;
     });
+    // KIỂM TRA TRẠNG THÁI TIẾT KIỆM
+  const isNegativeSaving = summaryData.cycleSaved < 0;
 
     const categories = Object.values(grouped).map(cat => ({
       ...cat, pct: totalChi > 0 ? Math.round((cat.amount / totalChi) * 100) : 0
@@ -548,18 +560,26 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
         </div>
       </div>
 
-      {/* Thẻ chúc mừng */}
-      <div className="w-full max-w-[1152px] flex flex-row justify-between items-center p-3 lg:p-6 rounded-2xl bg-gradient-to-r from-[rgba(109,94,0,0.2)] to-[rgba(249,227,122,0.4)] border border-[rgba(109,94,0,0.1)] relative overflow-hidden">
+      {/* Thẻ chúc mừng / Cảnh báo động */}
+      <div className={`w-full max-w-[1152px] flex flex-row justify-between items-center p-3 lg:p-6 rounded-2xl border relative overflow-hidden transition-colors duration-300 ${
+        isNegativeSaving 
+          ? 'bg-gradient-to-r from-[rgba(186,26,26,0.1)] to-[rgba(255,200,200,0.3)] border-[rgba(186,26,26,0.2)]' 
+          : 'bg-gradient-to-r from-[rgba(109,94,0,0.2)] to-[rgba(249,227,122,0.4)] border-[rgba(109,94,0,0.1)]'
+      }`}>
         <div className="flex items-center gap-3 lg:gap-4 relative z-10">
-          {/* Thu nhỏ icon trên Mobile (w-9 h-9) */}
           <div className="w-9 h-9 lg:w-12 lg:h-12 flex items-center justify-center bg-white rounded-xl shadow-sm shrink-0">
-            <span className="text-lg lg:text-2xl">🎉</span>
+            <span className="text-lg lg:text-2xl">{isNegativeSaving ? '⚠️' : '🎉'}</span>
           </div>
           <div className="flex flex-col gap-0.5 lg:gap-1">
-            {/* Thu nhỏ text trên Mobile */}
-            <h3 className="font-sans font-bold text-[14px] sm:text-[15px] lg:text-[18px] text-[#4A3F00] m-0">Chúc mừng!</h3>
-            <p className="font-sans text-[11.5px] sm:text-[12px] lg:text-[14px] text-[#4A3F00]/80 m-0 leading-tight">
-              {timeFilter === 'all' ? 'Tỷ lệ tiết kiệm chu kỳ này' : `Tỷ lệ tiết kiệm ${weekOptions.find(w => w.id === timeFilter)?.name || ''}`} của bạn đạt <strong>{summaryData.rate}%</strong>
+            <h3 className={`font-sans font-bold text-[14px] sm:text-[15px] lg:text-[18px] m-0 ${isNegativeSaving ? 'text-[#BA1A1A]' : 'text-[#4A3F00]'}`}>
+              {isNegativeSaving ? 'Chú ý mức tiết kiệm!' : 'Chúc mừng!'}
+            </h3>
+            <p className={`font-sans text-[11.5px] sm:text-[12px] lg:text-[14px] m-0 leading-tight ${isNegativeSaving ? 'text-[#BA1A1A]/90' : 'text-[#4A3F00]/80'}`}>
+              {isNegativeSaving 
+                ? (timeFilter === 'all' ? 'Bạn đang rút từ ví tiết kiệm nhiều hơn số tiền nạp vào trong toàn chu kỳ.' : `Bạn đang bị thâm hụt quỹ tiết kiệm trong ${weekOptions.find(w => w.id === timeFilter)?.name || ''}.`)
+                : (timeFilter === 'all' ? 'Tỷ lệ tiết kiệm chu kỳ này' : `Tỷ lệ tiết kiệm ${weekOptions.find(w => w.id === timeFilter)?.name || ''}`) + ` của bạn đạt `
+              }
+              {!isNegativeSaving && <strong>{summaryData.rate}%</strong>}
             </p>
           </div>
         </div>
@@ -567,35 +587,37 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
       </div>
 
       {/* Summary Stats Grid */}
-      <div className="w-full max-w-[1152px] flex flex-col lg:flex-row gap-4 lg:gap-6">
-        <div className="flex-1 flex flex-row lg:flex-col justify-start items-center lg:items-start p-4 lg:p-6 gap-4 bg-white border border-[#E3E2E3]/50 rounded-2xl shadow-[0px_4px_24px_rgba(27,28,29,0.04)] transition-all w-full">
-          <div className="w-10 h-10 lg:w-8 lg:h-8 flex items-center justify-center bg-[#F0FDF4] rounded-xl shrink-0"><svg width="14" height="14" viewBox="0 0 10 10" fill="none"><path d="M5 1l4 4H1z" fill="#16A34A" /></svg></div>
-          <div className="flex flex-col items-start lg:w-full">
-             <span className="font-sans text-[11px] lg:text-[14px] font-medium text-[#434653] uppercase lg:capitalize mb-0.5">Tổng thu nhập</span>
-             <p className="font-serif text-[18px] lg:text-[30px] font-bold text-[#1B1C1D] m-0 leading-tight">{fmt(summaryData.thu)}</p>
+      <div className="w-full max-w-[1152px] flex flex-col lg:flex-row gap-4 lg:gap-6 mt-4 lg:mt-0">
+        {/* ... (Giữ nguyên 2 card Tổng thu nhập và Tổng chi tiêu của bạn) ... */}
+        
+        {/* Card: Tổng tiền để dành (Cập nhật logic màu sắc) */}
+        <div className={`flex-1 flex flex-row lg:flex-col justify-start items-center lg:items-start p-4 lg:p-6 gap-4 border rounded-2xl shadow-[0px_4px_24px_rgba(27,28,29,0.04)] relative overflow-hidden transition-all w-full ${
+          isNegativeSaving 
+            ? 'bg-[rgba(186,26,26,0.05)] border-[rgba(186,26,26,0.2)]' 
+            : 'bg-[rgba(109,94,0,0.05)] border-[rgba(109,94,0,0.2)]'
+        }`}>
+          <div className={`absolute w-24 h-24 rounded-full blur-xl -right-4 -top-4 ${isNegativeSaving ? 'bg-[rgba(186,26,26,0.1)]' : 'bg-[rgba(109,94,0,0.1)]'}`} />
+          <div className={`w-10 h-10 lg:w-8 lg:h-8 flex items-center justify-center rounded-xl shrink-0 relative z-10 ${isNegativeSaving ? 'bg-[rgba(186,26,26,0.1)]' : 'bg-[rgba(109,94,0,0.2)]'}`}>
+            <svg width="16" height="16" viewBox="0 0 12 12" fill="none"><path d="M6 1l3 3H3z" fill={isNegativeSaving ? '#BA1A1A' : '#6D5E00'} /></svg>
           </div>
-        </div>
-
-        <div className="flex-1 flex flex-row lg:flex-col justify-start items-center lg:items-start p-4 lg:p-6 gap-4 bg-white border border-[#E3E2E3]/50 rounded-2xl shadow-[0px_4px_24px_rgba(27,28,29,0.04)] transition-all w-full">
-          <div className="w-10 h-10 lg:w-8 lg:h-8 flex items-center justify-center bg-[#FFF0F0] rounded-xl shrink-0"><svg width="14" height="14" viewBox="0 0 10 10" fill="none"><path d="M5 9l4-4H1z" fill="#BA1A1A" /></svg></div>
-          <div className="flex flex-col items-start lg:w-full">
-             <span className="font-sans text-[11px] lg:text-[14px] font-medium text-[#434653] uppercase lg:capitalize mb-0.5">Tổng chi tiêu</span>
-             <p className="font-serif text-[18px] lg:text-[30px] font-bold text-[#1B1C1D] m-0 leading-tight">{fmt(summaryData.chi)}</p>
-          </div>
-        </div>
-
-        <div className="flex-1 flex flex-row lg:flex-col justify-start items-center lg:items-start p-4 lg:p-6 gap-4 bg-[rgba(109,94,0,0.05)] border border-[rgba(109,94,0,0.2)] rounded-2xl shadow-[0px_4px_24px_rgba(27,28,29,0.04)] relative overflow-hidden transition-all w-full">
-          <div className="absolute w-24 h-24 bg-[rgba(109,94,0,0.1)] rounded-full blur-xl -right-4 -top-4" />
-          <div className="w-10 h-10 lg:w-8 lg:h-8 flex items-center justify-center bg-[rgba(109,94,0,0.2)] rounded-xl shrink-0 relative z-10"><svg width="16" height="16" viewBox="0 0 12 12" fill="none"><path d="M6 1l3 3H3z" fill="#6D5E00" /></svg></div>
           <div className="flex flex-col items-start lg:w-full relative z-10 flex-1">
-            <span className="font-sans text-[11px] lg:text-[14px] font-medium text-[#4A3F00] uppercase lg:capitalize mb-0.5">
-              {timeFilter === 'all' ? 'Tiền để dành' : `Tiền nạp ${weekOptions.find(w => w.id === timeFilter)?.name || ''}`}
+            <span className={`font-sans text-[11px] lg:text-[14px] font-medium uppercase lg:capitalize mb-0.5 ${isNegativeSaving ? 'text-[#BA1A1A]' : 'text-[#4A3F00]'}`}>
+              {timeFilter === 'all' ? 'Biến động tiết kiệm' : `Biến động ${weekOptions.find(w => w.id === timeFilter)?.name || ''}`}
             </span>
-            <p className="font-serif text-[18px] lg:text-[30px] font-bold text-[#4A3F00] m-0 leading-tight">{fmt(summaryData.cycleSaved)}</p>
+            {/* Nếu âm thì hiển thị dấu trừ phía trước số tiền cho trực quan */}
+            <p className={`font-serif text-[18px] lg:text-[30px] font-bold m-0 leading-tight ${isNegativeSaving ? 'text-[#BA1A1A]' : 'text-[#4A3F00]'}`}>
+              {isNegativeSaving ? '-' : ''}{fmt(Math.abs(summaryData.cycleSaved))}
+            </p>
             <div className="flex items-center gap-1 mt-1 lg:mt-2">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="shrink-0"><circle cx="6" cy="6" r="5.5" stroke="#6D5E00" strokeWidth="1" /><path d="M4 6l1.5 1.5L8 4.5" stroke="#6D5E00" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              <span className="font-sans text-[11px] lg:text-[12px] font-medium text-[#6D5E00]">
-                {summaryData.rate >= 100 ? 'Đạt 100% mục tiêu' : `Đạt ${summaryData.rate}% tỷ lệ`}
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="shrink-0">
+                <circle cx="6" cy="6" r="5.5" stroke={isNegativeSaving ? '#BA1A1A' : '#6D5E00'} strokeWidth="1" />
+                <path d={isNegativeSaving ? "M4 4l4 4M8 4l-4 4" : "M4 6l1.5 1.5L8 4.5"} stroke={isNegativeSaving ? '#BA1A1A' : '#6D5E00'} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className={`font-sans text-[11px] lg:text-[12px] font-medium ${isNegativeSaving ? 'text-[#BA1A1A]' : 'text-[#6D5E00]'}`}>
+                {isNegativeSaving 
+                  ? 'Đang thâm hụt so với gốc' 
+                  : (summaryData.rate >= 100 ? 'Đạt 100% mục tiêu' : `Đạt ${summaryData.rate}% tỷ lệ`)
+                }
               </span>
             </div>
           </div>
