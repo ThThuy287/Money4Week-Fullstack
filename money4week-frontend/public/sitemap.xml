@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Trang chủ -->
+  <url>
+    <loc>https://money4-week-fullstack.vercel.app/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <!-- Trang Nhập liệu -->
+  <url>
+    <loc>https://money4-week-fullstack.vercel.app/input</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <!-- Trang Tiết kiệm -->
+  <url>
+    <loc>https://money4-week-fullstack.vercel.app/savings</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <!-- Trang Báo cáo -->
+  <url>
+    <loc>https://money4-week-fullstack.vercel.app/reports</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>
