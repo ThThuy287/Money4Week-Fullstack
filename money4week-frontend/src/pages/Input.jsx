@@ -554,7 +554,8 @@ const Input = () => {
           </div>
           
           {/* Thêm max-h và overflow-y-auto để có thanh cuộn dọc khi lịch sử quá dài */}
-          <div className="flex flex-col gap-1 max-h-[450px] overflow-y-auto custom-scrollbar pr-2">
+          {/* Thay max-h-[450px] bằng flex-1 lg:max-h-none để lấp đầy giao diện trên Desktop */}
+          <div className="flex flex-col gap-1 flex-1 min-h-[300px] lg:min-h-0 max-h-[450px] lg:max-h-none overflow-y-auto custom-scrollbar pr-2">
             {isLoadingHistory ? ( 
               <div className="flex justify-center py-4 text-sm text-gray-500">Đang tải...</div> 
             ) : (() => {
@@ -566,7 +567,11 @@ const Input = () => {
               }
 
               return filteredHistory.map((item) => {
-                const IconComp = item.type === 'income' ? Banknote : Utensils; 
+                // Ưu tiên lấy icon từ API trả về, nếu không có thì dò trong mảng allCategories, cuối cùng mới fallback
+                const catFallback = allCategories.find(c => String(c.id) === String(item.category?.id));
+                const iconName = item.category?.icon || catFallback?.icon || (item.type === 'income' ? 'Banknote' : 'Utensils');
+                const IconComp = getIconComponent(iconName);
+                
                 const colorHex = item.type === 'income' ? 'text-[#16A34A]' : 'text-[#BA1A1A]';
                 const sign = item.type === 'income' ? '+' : '-';
                 const dateStr = item.date || item.transaction_date || getTodayFormatted();

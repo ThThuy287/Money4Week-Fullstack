@@ -32,6 +32,7 @@ const PDFPreview = () => {
   const [currTransactions, setCurrTransactions] = useState([]);
   const [prevTransactions, setPrevTransactions] = useState([]);
   const [rawSavings, setRawSavings] = useState([]);
+  const [rawTargets, setRawTargets] = useState([]);
   const [dateString, setDateString] = useState('');
   const [cycleDates, setCycleDates] = useState({ currStart: null, currEnd: null, prevStart: null, prevEnd: null });
 
@@ -278,7 +279,8 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
       expenseData: mapToChartData(currExpenseGroups),
       recentTransactions: formattedTransactions
     };
-  }, [currTransactions, prevTransactions, rawSavings, cycleDates]);
+  // Bổ sung rawTargets vào trong ngoặc vuông
+  }, [currTransactions, prevTransactions, rawSavings, rawTargets, cycleDates]);
 
   const fmt = (n) => (Number(n) || 0).toLocaleString("vi-VN").replace(/,/g, ".") + " VNĐ";
 

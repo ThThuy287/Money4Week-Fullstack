@@ -4,18 +4,27 @@ import {
   ShoppingCart, Coffee, Briefcase, GraduationCap, Dumbbell, Plane, Banknote, PartyPopper, Cat, Film,
   Car, Home, Utensils, Luggage, PiggyBank, Zap, Droplet, Wifi, Smartphone, Wallet,
   TrendingUp, CreditCard, Heart, Book, Music, Gift, Monitor, Shirt, Scissors, Baby,
-  Gamepad2, Wrench, Leaf, Bus, Train, Fuel, Camera, Shield, Activity, Landmark
+  Gamepad2, Wrench, Leaf, Bus, Train, Fuel, Camera, Shield, Activity, Landmark,
+  // 10 Icon mới thêm vào
+  Umbrella, Tv, Stethoscope, Sofa, Ticket, Palmtree, Pizza, Building, Glasses, Star
 } from 'lucide-react';
 import { NumericFormat } from 'react-number-format';
 import transactionsApi from '../api/transactionsApi'; 
 import usersApi from '../api/usersApi'; 
 
 const CATEGORY_COLORS = [
+  // 15 màu cũ
   '#094CB2', '#1B7B4D', '#C9510C', '#7030A0', '#D03A72', '#00BCD4', '#FFEB3B', '#4CAF50',
-  '#F44336', '#9C27B0', '#FF9800', '#795548', '#607D8B', '#E91E63', '#3F51B5'
+  '#F44336', '#9C27B0', '#FF9800', '#795548', '#607D8B', '#E91E63', '#3F51B5',
+  // 20 màu mới đa dạng (Tông sáng, pastel, đậm, tối)
+  '#1ABC9C', '#2ECC71', '#3498DB', '#9B59B6', '#34495E', 
+  '#F1C40F', '#E67E22', '#E74C3C', '#95A5A6', '#16A085', 
+  '#27AE60', '#2980B9', '#8E44AD', '#2C3E50', '#F39C12', 
+  '#D35400', '#C0392B', '#BDC3C7', '#7F8C8D', '#FF6B6B'
 ];
 
 const CATEGORY_ICONS = [
+  // 40 icon cũ
   { id: 'ShoppingCart', comp: ShoppingCart }, { id: 'Coffee', comp: Coffee }, 
   { id: 'Briefcase', comp: Briefcase }, { id: 'GraduationCap', comp: GraduationCap },
   { id: 'Dumbbell', comp: Dumbbell }, { id: 'Plane', comp: Plane },
@@ -35,7 +44,13 @@ const CATEGORY_ICONS = [
   { id: 'Leaf', comp: Leaf }, { id: 'Bus', comp: Bus },
   { id: 'Train', comp: Train }, { id: 'Fuel', comp: Fuel },
   { id: 'Camera', comp: Camera }, { id: 'Shield', comp: Shield },
-  { id: 'Activity', comp: Activity }, { id: 'Landmark', comp: Landmark }
+  { id: 'Activity', comp: Activity }, { id: 'Landmark', comp: Landmark },
+  // 10 icon mới
+  { id: 'Umbrella', comp: Umbrella }, { id: 'Tv', comp: Tv },
+  { id: 'Stethoscope', comp: Stethoscope }, { id: 'Sofa', comp: Sofa },
+  { id: 'Ticket', comp: Ticket }, { id: 'Palmtree', comp: Palmtree },
+  { id: 'Pizza', comp: Pizza }, { id: 'Building', comp: Building },
+  { id: 'Glasses', comp: Glasses }, { id: 'Star', comp: Star }
 ];
 
 const getIconComponent = (iconName) => {
