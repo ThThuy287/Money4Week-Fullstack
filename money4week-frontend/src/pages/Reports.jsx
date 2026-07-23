@@ -174,8 +174,8 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
     }));
   }, [dbCategories]);
 
-  const { weeklyData, rawExpenses } = useMemo(() => {
-    if (!weekOptions || weekOptions.length === 0) return { weeklyData: [], rawExpenses: [] };
+  const { weeklyData, rawExpenses, rawIncomes } = useMemo(() => {
+    if (!weekOptions || weekOptions.length === 0) return { weeklyData: [], rawExpenses: [], rawIncomes: [] };
 
     const wData = [
       { id: 'w1', week: weekOptions[0].name, thu: 0, chi: 0, saving: 0 },
@@ -185,6 +185,7 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
     ];
     
     const expenses = [];
+    const incomes = []; 
     const catWeeklyTotals = {};
 
     rawTransactions.forEach(tx => {
@@ -202,23 +203,35 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
         }
       }
 
-      if (targetWeekId && tx.type === 'expense') {
-        const catId = tx.category?.id || 'other';
-        const catName = tx.category?.name || 'Khác';
-        
-        // Ưu tiên color_hex và ép kiểu String() để so sánh ID an toàn
-        const catColor = tx.category?.color_hex || tx.category?.color || filterCategories.find(c => String(c.id) === String(catId))?.color || "#3B82F6";
-        
-        if (!catWeeklyTotals[catId]) catWeeklyTotals[catId] = { w1: 0, w2: 0, w3: 0, w4: 0 };
-        catWeeklyTotals[catId][targetWeekId] += amount;
+      if (targetWeekId) {
+        if (tx.type === 'income') {
+          // Xử lý lưu thu nhập theo danh mục
+          const catId = tx.category?.id || 'other_income';
+          const catName = tx.category?.name || 'Thu nhập khác';
+          const catColor = tx.category?.color_hex || tx.category?.color || filterCategories.find(c => String(c.id) === String(catId))?.color || "#16A34A";
+          
+          incomes.push({
+            id: tx.id || Math.random().toString(),
+            weekId: targetWeekId, catId: catId, category: catName, detail: tx.note || "Giao dịch thu nhập",
+            amount: amount, color: catColor, iconBg: `bg-[${catColor}20]`, iconColor: `text-[${catColor}]`
+          });
+        } else if (tx.type === 'expense') {
+          const catId = tx.category?.id || 'other';
+          const catName = tx.category?.name || 'Khác';
+          const catColor = tx.category?.color_hex || tx.category?.color || filterCategories.find(c => String(c.id) === String(catId))?.color || "#3B82F6";
+          
+          if (!catWeeklyTotals[catId]) catWeeklyTotals[catId] = { w1: 0, w2: 0, w3: 0, w4: 0 };
+          catWeeklyTotals[catId][targetWeekId] += amount;
 
-        expenses.push({
-          id: tx.id || Math.random().toString(),
-          weekId: targetWeekId, catId: catId, category: catName, detail: tx.note || "Giao dịch chi tiêu",
-          amount: amount, color: catColor, iconBg: `bg-[${catColor}20]`, iconColor: `text-[${catColor}]`
-        });
-      }
+          expenses.push({
+            id: tx.id || Math.random().toString(),
+            weekId: targetWeekId, catId: catId, category: catName, detail: tx.note || "Giao dịch chi tiêu",
+            amount: amount, color: catColor, iconBg: `bg-[${catColor}20]`, iconColor: `text-[${catColor}]`
+          });
+        }
+      } // <-- DẤU NGOẶC BỊ THIẾU Ở ĐÂY ĐÃ ĐƯỢC BỔ SUNG
     });
+
     rawTargets.forEach(item => {
       const dueDate = parseSafeDate(item.due_date || item.deadline || item.date);
       const amount = Number(item.amount || item.target_amount || 0);
@@ -229,7 +242,7 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
       for (let i = 0; i < weekOptions.length; i++) {
         if (dueDate >= weekOptions[i].startObj && dueDate <= weekOptions[i].endObj) {
           targetWeekId = weekOptions[i].id;
-          wData[i].chi += amount; // Cộng nhồi tiền mục tiêu vào biểu đồ Cột (Tổng chi)
+          wData[i].chi += amount;
           break;
         }
       }
@@ -237,12 +250,11 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
       if (targetWeekId) {
         const catId = 'target_expense';
         const catName = 'Mục tiêu tới hạn';
-        const catColor = '#8B5CF6'; // Màu tím đặc trưng để dễ phân biệt trên Donut Chart
+        const catColor = '#8B5CF6'; 
         
         if (!catWeeklyTotals[catId]) catWeeklyTotals[catId] = { w1: 0, w2: 0, w3: 0, w4: 0 };
         catWeeklyTotals[catId][targetWeekId] += amount;
 
-        // Đẩy mục tiêu vào bảng danh mục bên dưới
         expenses.push({
           id: item.id || `target-${Math.random()}`,
           weekId: targetWeekId, 
@@ -261,13 +273,10 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
       const svDate = parseSafeDate(sv.date || sv.created_at || sv.transaction_date);
       const amount = parseInt(String(sv.amount || 0).replace(/\D/g, ''), 10) || 0;
       
-      // Thêm kiểm tra an toàn để tránh lỗi ngày tháng bị Invalid Date
       if (isNaN(svDate.getTime()) || amount === 0) return;
 
       for (let i = 0; i < weekOptions.length; i++) {
         if (svDate >= weekOptions[i].startObj && svDate <= weekOptions[i].endObj) {
-          
-          // SỬA LOGIC Ở ĐÂY: Trừ đi nếu là rút tiền, cộng vào nếu là nạp tiền
           if (sv.type === 'withdraw' || sv.desc?.toLowerCase().includes('rút')) {
             wData[i].saving -= amount; 
           } else {
@@ -302,8 +311,8 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
       }
     });
 
-    return { weeklyData: wData, rawExpenses: expenses };
-  }, [rawTransactions, rawSavings, weekOptions, filterCategories]);
+    return { weeklyData: wData, rawExpenses: expenses, rawIncomes: incomes };
+  }, [rawTransactions, rawSavings, weekOptions, filterCategories, rawTargets]);
 
   const fmt = (n) => (Number(n) || 0).toLocaleString("vi-VN").replace(/,/g, ".") + " VNĐ";
 
@@ -322,35 +331,67 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
   const isNegativeSaving = summaryData.cycleSaved < 0;
 
   // 2. Bên trong donutData thì XÓA dòng cũ đi
-  const donutData = useMemo(() => {
+  const { donutExpense, donutIncome } = useMemo(() => {
+    // 1. Tính toán cho Chi tiêu (Expense)
     const filteredExps = timeFilter === 'all' ? rawExpenses : rawExpenses.filter(e => e.weekId === timeFilter);
-    const grouped = {};
+    const groupedExps = {};
     let totalChi = 0;
 
     filteredExps.forEach(e => {
-      if (!grouped[e.catId]) grouped[e.catId] = { name: e.category, amount: 0, color: e.color };
-      grouped[e.catId].amount += e.amount;
+      if (!groupedExps[e.catId]) groupedExps[e.catId] = { name: e.category, amount: 0, color: e.color };
+      groupedExps[e.catId].amount += e.amount;
       totalChi += e.amount;
     });
 
-    // KHÔNG CẦN KHAI BÁO isNegativeSaving Ở TRONG NÀY NỮA ❌
-
-    const categories = Object.values(grouped).map(cat => ({
+    const expCategories = Object.values(groupedExps).map(cat => ({
       ...cat, pct: totalChi > 0 ? Math.round((cat.amount / totalChi) * 100) : 0
     })).sort((a,b) => b.amount - a.amount);
 
-    return { categories, totalChi };
-  }, [timeFilter, rawExpenses]);
+    // 2. Tính toán cho Thu nhập (Income)
+    const filteredIncs = timeFilter === 'all' ? rawIncomes : rawIncomes.filter(e => e.weekId === timeFilter);
+    const groupedIncs = {};
+    let totalThu = 0;
+
+    filteredIncs.forEach(e => {
+      if (!groupedIncs[e.catId]) groupedIncs[e.catId] = { name: e.category, amount: 0, color: e.color };
+      groupedIncs[e.catId].amount += e.amount;
+      totalThu += e.amount;
+    });
+
+    const incCategories = Object.values(groupedIncs).map(cat => ({
+      ...cat, pct: totalThu > 0 ? Math.round((cat.amount / totalThu) * 100) : 0
+    })).sort((a,b) => b.amount - a.amount);
+
+    return { 
+      donutExpense: { categories: expCategories, total: totalChi }, 
+      donutIncome: { categories: incCategories, total: totalThu } 
+    };
+  }, [timeFilter, rawExpenses, rawIncomes]);
 
   const tableData = useMemo(() => {
-    let filtered = rawExpenses;
+    // Gắn cờ isIncome ngay từ đầu để tối ưu hiệu suất thay vì dùng .some() lặp lại nhiều lần
+    let combined = [
+      ...rawExpenses.map(e => ({ ...e, isIncome: false })), 
+      ...rawIncomes.map(e => ({ ...e, isIncome: true }))
+    ];
+    
+    let filtered = combined;
     if (timeFilter !== 'all') filtered = filtered.filter(e => e.weekId === timeFilter);
     if (catFilter !== 'all') filtered = filtered.filter(e => e.catId === catFilter);
 
-    const total = filtered.reduce((sum, e) => sum + e.amount, 0);
-    let result = filtered.map(e => ({
-      ...e, pctDisplay: total > 0 ? ((e.amount / total) * 100).toFixed(1) + '%' : '0%'
-    }));
+    // Tính tổng Thu và tổng Chi hoàn toàn riêng biệt
+    const totalExp = filtered.filter(e => !e.isIncome).reduce((sum, e) => sum + Math.abs(e.amount), 0);
+    const totalInc = filtered.filter(e => e.isIncome).reduce((sum, e) => sum + Math.abs(e.amount), 0);
+    
+    let result = filtered.map(e => {
+      // Xác định mẫu số dựa vào loại giao dịch
+      const targetTotal = e.isIncome ? totalInc : totalExp;
+      
+      return {
+        ...e, 
+        pctDisplay: targetTotal > 0 ? ((Math.abs(e.amount) / targetTotal) * 100).toFixed(1) + '%' : '0%'
+      };
+    });
 
     const parseCompare = (val) => val === "Không đổi" ? 0 : parseFloat(String(val).replace('%', '').replace('+', '')) || 0;
     switch (sortType) {
@@ -360,14 +401,14 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
       case 'change_asc': return result.sort((a, b) => parseCompare(a.compare) - parseCompare(b.compare));
       default: return result;
     }
-  }, [timeFilter, catFilter, sortType, rawExpenses]);
+  }, [timeFilter, catFilter, sortType, rawExpenses, rawIncomes]);
 
   const handleChartClick = (e, content) => {
     e.stopPropagation();
     setTooltip({ show: true, x: e.clientX, y: e.clientY, content });
   };
 
-  const DonutChart = () => {
+  const DonutChart = ({ data, label }) => {
     const size = 192;
     const r = 80;
     const c = 2 * Math.PI * r;
@@ -375,13 +416,13 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
     
     return (
       <div className="relative flex items-center justify-center shrink-0 mx-auto lg:mx-0" style={{ width: size, height: size }}>
-        {donutData.totalChi === 0 ? (
+        {data.total === 0 ? (
           <div className="w-full h-full rounded-full border-[16px] border-[#F5F3F4] flex items-center justify-center">
             <span className="font-sans text-[12px] text-[#737784] italic">Trống</span>
           </div>
         ) : (
           <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90 shrink-0">
-            {donutData.categories.map((cat, i) => {
+            {data.categories.map((cat, i) => {
               const len = (cat.pct / 100) * c;
               const el = (
                 <circle
@@ -392,7 +433,7 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
                     <div className="flex flex-col gap-1">
                       <span className="font-sans text-[11px] font-bold uppercase tracking-[0.5px]" style={{ color: cat.color }}>{cat.name}</span>
                       <span className="font-sans text-[16px] font-bold text-[#1B1C1D]">{fmt(cat.amount)}</span>
-                      <span className="font-sans text-[12px] text-[#434653]">Chiếm {cat.pct}% chi tiêu</span>
+                      <span className="font-sans text-[12px] text-[#434653]">Chiếm {cat.pct}% {label.toLowerCase()}</span>
                     </div>
                   ))}
                 />
@@ -403,48 +444,14 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
           </svg>
         )}
         <div className="absolute text-center pointer-events-none">
-          <p className="font-serif text-[20px] lg:text-[24px] font-bold text-[#1B1C1D] m-0">{fmt(donutData.totalChi)}</p>
-          <p className="font-sans text-[10px] lg:text-[12px] text-[#434653] uppercase tracking-[0.5px]">Tổng chi</p>
+          <p className={`font-serif text-[20px] lg:text-[24px] font-bold m-0 ${label === 'Tổng thu' ? 'text-[#16A34A]' : 'text-[#1B1C1D]'}`}>{fmt(data.total)}</p>
+          <p className="font-sans text-[10px] lg:text-[12px] text-[#434653] uppercase tracking-[0.5px]">{label}</p>
         </div>
       </div>
     );
   };
 
-  const BarChart = () => {
-    const max = Math.max(...weeklyData.flatMap((d) => [d.thu, d.chi]));
-    const safeMax = max === 0 ? 1 : max; 
-    return (
-      <div className="flex items-end justify-between gap-1 lg:gap-2 border-b border-[#E3E2E3]/50 pb-2 h-[160px] lg:h-[200px] w-full mt-auto">
-        {weeklyData.map((d) => (
-          <div key={d.week} className="flex flex-col items-center gap-2 w-full flex-1">
-            <div className="flex items-end gap-1 h-[120px] lg:h-[160px] w-full justify-center">
-              <div
-                className={`w-3 sm:w-5 lg:w-[18px] rounded-t cursor-pointer transition-all duration-300 hover:opacity-70 ${timeFilter === 'all' || timeFilter === d.id ? 'bg-[#16A34A]' : 'bg-[#E3E2E3]'}`}
-                style={{ height: `${(d.thu / safeMax) * 100}%` }}
-                onClick={(e) => handleChartClick(e, (
-                  <div className="flex flex-col gap-1">
-                    <span className="font-sans text-[11px] font-bold uppercase tracking-[0.5px] text-[#16A34A]">{d.week} - Thu nhập</span>
-                    <span className="font-sans text-[16px] font-bold text-[#1B1C1D]">{fmt(d.thu)}</span>
-                  </div>
-                ))}
-              />
-              <div
-                className={`w-3 sm:w-5 lg:w-[18px] rounded-t cursor-pointer transition-all duration-300 hover:opacity-70 ${timeFilter === 'all' || timeFilter === d.id ? 'bg-[#BA1A1A]' : 'bg-[#E3E2E3]'}`}
-                style={{ height: `${(d.chi / safeMax) * 100}%` }}
-                onClick={(e) => handleChartClick(e, (
-                  <div className="flex flex-col gap-1">
-                    <span className="font-sans text-[11px] font-bold uppercase tracking-[0.5px] text-[#BA1A1A]">{d.week} - Chi tiêu</span>
-                    <span className="font-sans text-[16px] font-bold text-[#1B1C1D]">{fmt(d.chi)}</span>
-                  </div>
-                ))}
-              />
-            </div>
-            <span className={`font-sans text-[10px] lg:text-[12px] truncate max-w-[50px] lg:max-w-none ${timeFilter === 'all' || timeFilter === d.id ? 'text-[#1B1C1D] font-bold' : 'text-[#737784]'}`}>{d.week}</span>
-          </div>
-        ))}
-      </div>
-    );
-  };
+  
 
   if (isLoading || weekOptions.length === 0) {
     return (
@@ -628,17 +635,18 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
       </div>
 
       {/* Charts Row */}
-      <div className="w-full max-w-[1152px] flex flex-col lg:flex-row gap-4 lg:gap-6">
-        {/* Donut Chart */}
-        <div className="w-full lg:w-[468px] flex flex-col p-4 lg:p-6 gap-4 lg:gap-6 bg-white border border-[#E3E2E3]/50 rounded-2xl shadow-[0px_4px_24px_rgba(27,28,29,0.04)]">
+      <div className="w-full max-w-[1152px] flex flex-col lg:flex-row gap-4 lg:gap-6 mt-4 lg:mt-6">
+        
+        {/* Donut Chart - TỔNG CHI */}
+        <div className="w-full flex-1 flex flex-col p-4 lg:p-6 gap-4 lg:gap-6 bg-white border border-[#E3E2E3]/50 rounded-2xl shadow-[0px_4px_24px_rgba(27,28,29,0.04)]">
           <h3 className="font-serif text-[18px] lg:text-[20px] font-bold text-[#1B1C1D] m-0">Cơ cấu chi tiêu</h3>
           <div className="flex flex-col sm:flex-row items-center gap-6 lg:gap-8">
-            <DonutChart />
+            <DonutChart data={donutExpense} label="Tổng chi" />
             <div className="flex flex-col gap-3 lg:gap-4 max-h-[192px] overflow-y-auto pr-2 custom-scrollbar w-full mt-2 sm:mt-0">
-              {donutData.categories.length === 0 ? (
+              {donutExpense.categories.length === 0 ? (
                  <span className="font-sans text-[13px] italic text-[#737784] text-center sm:text-left">Chưa có chi tiêu nào</span>
               ) : (
-                donutData.categories.map((cat) => (
+                donutExpense.categories.map((cat) => (
                   <div key={cat.name} className="flex justify-between items-center w-full">
                     <div className="flex items-center gap-2 lg:gap-3">
                       <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
@@ -655,19 +663,33 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
           </div>
         </div>
 
-        {/* Bar Chart */}
-        <div className="flex-1 flex flex-col p-4 lg:p-6 bg-white border border-[#E3E2E3]/50 rounded-2xl shadow-[0px_4px_24px_rgba(27,28,29,0.04)] h-full min-h-[250px] lg:min-h-0">
-          <div className="flex justify-between items-center mb-4 lg:mb-6">
-            <h3 className="font-serif text-[18px] lg:text-[20px] font-bold text-[#1B1C1D] m-0">Thu & Chi</h3>
-            <div className="flex items-center gap-3 lg:gap-4">
-              <div className="flex items-center gap-1.5"><span className="w-2 h-2 lg:w-3 lg:h-3 rounded-sm bg-[#16A34A]" /><span className="font-sans text-[11px] lg:text-[12px] text-[#1B1C1D]">Thu</span></div>
-              <div className="flex items-center gap-1.5"><span className="w-2 h-2 lg:w-3 lg:h-3 rounded-sm bg-[#BA1A1A]" /><span className="font-sans text-[11px] lg:text-[12px] text-[#1B1C1D]">Chi</span></div>
+        {/* Donut Chart - TỔNG THU */}
+        <div className="w-full flex-1 flex flex-col p-4 lg:p-6 gap-4 lg:gap-6 bg-white border border-[#E3E2E3]/50 rounded-2xl shadow-[0px_4px_24px_rgba(27,28,29,0.04)]">
+          <h3 className="font-serif text-[18px] lg:text-[20px] font-bold text-[#1B1C1D] m-0">Cơ cấu thu nhập</h3>
+          <div className="flex flex-col sm:flex-row items-center gap-6 lg:gap-8">
+            <DonutChart data={donutIncome} label="Tổng thu" />
+            <div className="flex flex-col gap-3 lg:gap-4 max-h-[192px] overflow-y-auto pr-2 custom-scrollbar w-full mt-2 sm:mt-0">
+              {donutIncome.categories.length === 0 ? (
+                 <span className="font-sans text-[13px] italic text-[#737784] text-center sm:text-left">Chưa có thu nhập nào</span>
+              ) : (
+                donutIncome.categories.map((cat) => (
+                  <div key={cat.name} className="flex justify-between items-center w-full">
+                    <div className="flex items-center gap-2 lg:gap-3">
+                      <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                      <span className="font-sans text-[13px] lg:text-[14px] font-medium text-[#1B1C1D] w-[80px] lg:w-[60px] truncate" title={cat.name}>{cat.name}</span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="font-sans text-[13px] lg:text-[14px] font-bold text-[#16A34A]">{fmt(cat.amount)}</span>
+                      <span className="font-sans text-[11px] text-[#434653]">{cat.pct}%</span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
-          <BarChart />
         </div>
-      </div>
 
+      </div>
       {/* Data Table -> List Card on Mobile */}
       <div className="w-full max-w-[1152px] flex flex-col p-4 lg:p-6 bg-white border border-[#E3E2E3]/50 rounded-2xl shadow-[0px_4px_24px_rgba(27,28,29,0.04)] relative z-10">
         <div className="flex justify-between items-center w-full mb-4 lg:mb-6">
@@ -702,7 +724,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
         <div className="max-h-[500px] lg:max-h-[400px] overflow-y-auto lg:pr-2 custom-scrollbar">
           {tableData.length > 0 ? (
             tableData.map((row) => (
-              // Bố cục Card (Dọc) trên Mobile, Bảng (Ngang) trên Desktop
               <div key={row.id} className="flex flex-col lg:flex-row justify-between items-start lg:items-center border-b border-[#E3E2E3]/30 py-4 px-1 lg:px-2 hover:bg-gray-50/50 transition-colors duration-200 gap-3 lg:gap-0">
                 <div className="flex justify-between items-start w-full lg:w-[45%]">
                   <div className="flex items-center gap-3">
@@ -714,12 +735,12 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
                       <p className="font-sans text-[12px] text-[#434653] m-0 truncate max-w-[180px] lg:max-w-[200px]">{row.detail}</p>
                     </div>
                   </div>
-                  {/* Số tiền đưa lên cùng hàng với Tên trên Mobile */}
-                  <span className="font-sans text-[14px] font-bold text-[#1B1C1D] block lg:hidden">{fmt(row.amount)}</span>
+                  {/* Số tiền trên Mobile (Thêm màu xanh nếu là thu nhập) */}
+                  <span className={`font-sans text-[14px] font-bold block lg:hidden ${row.isIncome ? 'text-[#16A34A]' : 'text-[#1B1C1D]'}`}>{fmt(row.amount)}</span>
                 </div>
                 
                 {/* Số tiền trên Desktop */}
-                <span className="hidden lg:block font-sans text-[14px] font-bold text-[#1B1C1D] w-[15%] text-right">{fmt(row.amount)}</span>
+                <span className={`hidden lg:block font-sans text-[14px] font-bold w-[15%] text-right ${row.isIncome ? 'text-[#16A34A]' : 'text-[#1B1C1D]'}`}>{fmt(row.amount)}</span>
                 
                 {/* Khu vực Tỷ lệ & So sánh */}
                 <div className="flex flex-row lg:w-[32%] w-full justify-between lg:justify-end items-center gap-4 lg:gap-0">
@@ -737,7 +758,7 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
               </div>
             ))
           ) : (
-            <div className="py-12 text-center w-full"><span className="font-sans text-[14px] text-[#434653] italic">Không có chi tiêu nào phù hợp với bộ lọc.</span></div>
+            <div className="py-12 text-center w-full"><span className="font-sans text-[14px] text-[#434653] italic">Không có giao dịch nào phù hợp với bộ lọc.</span></div>
           )}
         </div>
       </div>

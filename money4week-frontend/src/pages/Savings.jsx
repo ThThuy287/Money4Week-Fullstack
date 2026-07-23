@@ -559,8 +559,16 @@ const Savings = () => {
               {displayHistory.length > 0 ? (
                 displayHistory.map((item) => {
                   const HistIcon = item.icon ? getIconComponent(item.icon) : Wallet;
+                  
+                  // Xác định xem đây là giao dịch rút hay nạp tiền
+                  const isWithdraw = String(item.type).toLowerCase() === 'withdraw' || 
+                                     Number(item.amount) < 0 || 
+                                     (item.desc && String(item.desc).toLowerCase().includes('rút'));
+                  const absAmount = Number(String(item.amount).replace(/\D/g, ''));
+
                   return (
                     <tr key={item.id} className="flex flex-col lg:table-row border border-[#E3E2E3]/60 lg:border-0 lg:border-b lg:border-[#E3E2E3]/30 rounded-xl lg:rounded-none mb-3 lg:mb-0 p-4 lg:p-0 bg-white lg:bg-transparent shadow-sm lg:shadow-none hover:bg-gray-50/50 transition-colors">
+                      {/* ... GIỮ NGUYÊN CÁC THẺ TD BÊN TRÊN CỦA ITEM ... */}
                       <td className="px-0 lg:px-6 py-1.5 lg:py-5 flex lg:table-cell justify-between items-center lg:whitespace-nowrap border-b lg:border-0 border-gray-100 pb-3 mb-2 lg:pb-5 lg:mb-0">
                         <span className="lg:hidden text-[#737784] font-medium text-[11px] uppercase tracking-[0.5px]">Ngày</span>
                         <span className="text-[13px] lg:text-[14px] text-[#434653] font-medium lg:font-normal">{item.date}</span>
@@ -578,12 +586,17 @@ const Savings = () => {
                           </span>
                         </div>
                       </td>
+                      
+                      {/* BẮT ĐẦU VÙNG CẦN SỬA CHO CỘT SỐ TIỀN */}
                       <td className="px-0 lg:px-6 py-1.5 lg:py-5 flex lg:table-cell justify-between items-center">
-                        <span className="lg:hidden text-[#737784] font-medium text-[11px] uppercase tracking-[0.5px]">Số tiền nạp</span>
-                        <span className="font-bold text-[14px] text-[#16A34A] lg:text-right whitespace-nowrap">
-                          +{Number(String(item.amount).replace(/\D/g, '')).toLocaleString('vi-VN')} VNĐ
+                        <span className="lg:hidden text-[#737784] font-medium text-[11px] uppercase tracking-[0.5px]">
+                          {isWithdraw ? 'Số tiền rút' : 'Số tiền nạp'}
+                        </span>
+                        <span className={`font-bold text-[14px] lg:text-right whitespace-nowrap ${isWithdraw ? 'text-[#E11D48]' : 'text-[#16A34A]'}`}>
+                          {isWithdraw ? '-' : '+'}{absAmount.toLocaleString('vi-VN')} VNĐ
                         </span>
                       </td>
+                      {/* KẾT THÚC VÙNG CẦN SỬA */}
                     </tr>
                   );
                 })
