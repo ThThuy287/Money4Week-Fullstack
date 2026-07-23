@@ -279,8 +279,13 @@ const Savings = () => {
       note: depositNote ? `[Nạp ví] ${depositNote}` : `Nạp tiền vào ví: ${selectedWallet.title}`
     };
 
-    // Nếu Backend bắt buộc phải có ID danh mục, bỏ comment dòng bên dưới:
-    // if (dbCategories && dbCategories.length > 0) transactionPayload.category_id = dbCategories[0].id;
+    // Fetch danh mục chi phí từ backend để lấy category_id hợp lệ
+    const catRes = await transactionsApi.getCategories('expense');
+    const dbCategories = catRes.data || catRes;
+    
+    if (dbCategories && dbCategories.length > 0) {
+      transactionPayload.category_id = dbCategories[0].id;
+    }
 
     await transactionsApi.createTransaction(transactionPayload);
 
@@ -329,8 +334,13 @@ const Savings = () => {
       note: withdrawNote ? `[Rút ví] ${withdrawNote}` : `Rút tiền từ ví: ${selectedWallet.title}`
     };
 
-    // Nếu Backend bắt buộc phải có ID danh mục, bỏ comment dòng bên dưới:
-    // if (dbCategories && dbCategories.length > 0) transactionPayload.category_id = dbCategories[0].id;
+    // Fetch danh mục thu nhập từ backend để lấy category_id hợp lệ
+    const catRes = await transactionsApi.getCategories('income');
+    const dbCategories = catRes.data || catRes;
+    
+    if (dbCategories && dbCategories.length > 0) {
+      transactionPayload.category_id = dbCategories[0].id;
+    }
 
     await transactionsApi.createTransaction(transactionPayload);
 
