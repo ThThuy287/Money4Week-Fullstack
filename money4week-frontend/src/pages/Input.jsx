@@ -3,7 +3,12 @@ import {
   Wallet, Plus, Save, Building2, BookOpen, Laptop, ShieldCheck,
   ChevronDown, CalendarDays, CheckCircle2, X,
   Utensils, Banknote, BusFront, ShoppingBag,
-  GraduationCap, Home, Plane, MoreHorizontal, Edit2, Trash2 // Thêm Edit2, Trash2
+  GraduationCap, Home, Plane, MoreHorizontal, Edit2, Trash2,
+  ShoppingCart, Coffee, Briefcase, Dumbbell, PartyPopper, Cat, Film,
+  Car, Luggage, PiggyBank, Zap, Droplet, Wifi, Smartphone,
+  TrendingUp, CreditCard, Heart, Book, Music, Gift, Monitor, Shirt, Scissors, Baby,
+  Gamepad2, Wrench, Leaf, Bus, Train, Fuel, Camera, Shield, Activity, Landmark,
+  Umbrella, Tv, Stethoscope, Sofa, Ticket, Palmtree, Pizza, Building, Glasses, Star
 } from 'lucide-react';
 import { NumericFormat } from 'react-number-format';
 import transactionsApi from '../api/transactionsApi';
@@ -11,7 +16,15 @@ import remindersApi from '../api/remindersApi';
 
 const getIconComponent = (iconName) => {
   if (!iconName) return MoreHorizontal;
-  const icons = { Laptop, GraduationCap, Home, Plane, Building2, BookOpen, Utensils, Banknote, BusFront, ShoppingBag, Wallet };
+  const icons = { 
+    Laptop, GraduationCap, Home, Plane, Building2, BookOpen, 
+    Utensils, Banknote, BusFront, ShoppingBag, Wallet,
+    ShoppingCart, Coffee, Briefcase, Dumbbell, PartyPopper, Cat, Film,
+    Car, Luggage, PiggyBank, Zap, Droplet, Wifi, Smartphone,
+    TrendingUp, CreditCard, Heart, Book, Music, Gift, Monitor, Shirt, Scissors, Baby,
+    Gamepad2, Wrench, Leaf, Bus, Train, Fuel, Camera, Shield, Activity, Landmark,
+    Umbrella, Tv, Stethoscope, Sofa, Ticket, Palmtree, Pizza, Building, Glasses, Star
+  };
   return icons[iconName] || MoreHorizontal;
 };
 

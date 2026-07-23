@@ -6,6 +6,7 @@ import usersApi from '../api/usersApi';
 import walletsApi from '../api/walletsApi'; 
 import { X } from 'lucide-react';
 import remindersApi from '../api/remindersApi';
+import categoryApi from '../api/categoryApi';
 
 
 const COLORS = ["#F97316", "#3B82F6", "#EAB308", "#A855F7", "#16A34A", "#EC4899", "#06B6D4"];
