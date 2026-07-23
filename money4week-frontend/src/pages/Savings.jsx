@@ -266,30 +266,30 @@ const Savings = () => {
   const newBalanceNum = currentBalanceNum + depositAmountNum;
 
   const handleConfirmDeposit = async () => {
-    if (!depositAmount || depositAmountNum <= 0) { showError('Vui lòng nhập số tiền nạp hợp lệ!'); return; }
-    try {
-      setIsSubmitting(true);
-      // 1. Nạp tiền vào ví
-      await walletsApi.deposit(selectedWallet.id, { amount: depositAmountNum, date: depositDate, note: depositNote });
-      
-      // 2. Ghi nhận là khoản chi
-      await transactionsApi.createTransaction({
-        category_id: null,
-        type: 'expense',
-        amount: depositAmountNum,
-        date: depositDate,
-        transaction_date: depositDate,
-        note: depositNote ? `[Nạp ví] ${depositNote}` : `Nạp tiền vào ví: ${selectedWallet.title}`
-      });
+  if (!depositAmount || depositAmountNum <= 0) { showError('Vui lòng nhập số tiền nạp hợp lệ!'); return; }
+  try {
+    setIsSubmitting(true);
+    await walletsApi.deposit(selectedWallet.id, { amount: depositAmountNum, date: depositDate, note: depositNote });
+    
+    const transactionPayload = {
+      type: 'expense',
+      amount: depositAmountNum,
+      date: depositDate,
+      transaction_date: depositDate,
+      note: depositNote ? `[Nạp ví] ${depositNote}` : `Nạp tiền vào ví: ${selectedWallet.title}`
+    };
 
-      showSuccess('Nạp tiền vào ví thành công!');
-      
-      // FIX: Thêm await để hệ thống chờ lấy xong dữ liệu mới rồi mới đóng Modal
-      await fetchData(); 
-      setIsDepositModalOpen(false);
-    } catch (err) { showError(err.response?.data?.message || 'Có lỗi xảy ra khi nạp tiền!'); } 
-    finally { setIsSubmitting(false); }
-  };
+    // Nếu Backend bắt buộc phải có ID danh mục, bỏ comment dòng bên dưới:
+    // if (dbCategories && dbCategories.length > 0) transactionPayload.category_id = dbCategories[0].id;
+
+    await transactionsApi.createTransaction(transactionPayload);
+
+    showSuccess('Nạp tiền vào ví thành công!');
+    await fetchData(); 
+    setIsDepositModalOpen(false);
+  } catch (err) { showError(err.response?.data?.message || 'Có lỗi xảy ra khi nạp tiền!'); } 
+  finally { setIsSubmitting(false); }
+};
   // ==========================================
   // 6. MODAL: RÚT TIỀN (👇 CẮT TỪ DƯỚI ĐEM LÊN ĐÂY)
   // ==========================================
@@ -313,28 +313,33 @@ const Savings = () => {
   const newBalanceAfterWithdraw = currentBalanceNum - withdrawAmountNum;
 
   const handleConfirmWithdraw = async () => {
-    if (!withdrawAmount || withdrawAmountNum <= 0) { showError('Vui lòng nhập số tiền rút hợp lệ!'); return; }
-    if (withdrawAmountNum > currentBalanceNum) { showError('Số dư ví không đủ để rút!'); return; }
+  if (!withdrawAmount || withdrawAmountNum <= 0) { showError('Vui lòng nhập số tiền rút hợp lệ!'); return; }
+  if (withdrawAmountNum > currentBalanceNum) { showError('Số dư ví không đủ để rút!'); return; }
+  
+  try {
+    setIsSubmitting(true);
+    await walletsApi.withdraw(selectedWallet.id, { amount: withdrawAmountNum, date: withdrawDate, note: withdrawNote });
     
-    try {
-      setIsSubmitting(true);
-      await walletsApi.withdraw(selectedWallet.id, { amount: withdrawAmountNum, date: withdrawDate, note: withdrawNote });
-      
-      await transactionsApi.createTransaction({
-        category_id: null,
-        type: 'income',
-        amount: withdrawAmountNum,
-        date: withdrawDate,
-        transaction_date: withdrawDate,
-        note: withdrawNote ? `[Rút ví] ${withdrawNote}` : `Rút tiền từ ví: ${selectedWallet.title}`
-      });
+    // Tạo payload chuẩn không gửi category_id: null
+    const transactionPayload = {
+      type: 'income',
+      amount: withdrawAmountNum,
+      date: withdrawDate,
+      transaction_date: withdrawDate,
+      note: withdrawNote ? `[Rút ví] ${withdrawNote}` : `Rút tiền từ ví: ${selectedWallet.title}`
+    };
 
-      showSuccess('Rút tiền khỏi ví thành công!');
-      await fetchData(); 
-      setIsWithdrawModalOpen(false);
-    } catch (err) { showError(err.response?.data?.message || 'Có lỗi xảy ra khi rút tiền!'); } 
-    finally { setIsSubmitting(false); }
-  };
+    // Nếu Backend bắt buộc phải có ID danh mục, bỏ comment dòng bên dưới:
+    // if (dbCategories && dbCategories.length > 0) transactionPayload.category_id = dbCategories[0].id;
+
+    await transactionsApi.createTransaction(transactionPayload);
+
+    showSuccess('Rút tiền khỏi ví thành công!');
+    await fetchData(); 
+    setIsWithdrawModalOpen(false);
+  } catch (err) { showError(err.response?.data?.message || 'Có lỗi xảy ra khi rút tiền!'); } 
+  finally { setIsSubmitting(false); }
+};
 
   if (isLoading && wallets.length === 0) {
     return (
