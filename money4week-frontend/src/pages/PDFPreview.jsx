@@ -3,8 +3,34 @@ import { useNavigate } from 'react-router-dom';
 import reportsApi from '../api/reportsApi';
 import usersApi from '../api/usersApi';
 import walletsApi from '../api/walletsApi'; 
+import remindersApi from '../api/remindersApi'; 
+import categoryApi from '../api/categoryApi';   
+import { 
+  X, Printer, Download, FileText,
+  Wallet, Plus, Save, Building2, BookOpen, Laptop, ShieldCheck,
+  ChevronDown, CalendarDays, CheckCircle2,
+  Utensils, Banknote, BusFront, ShoppingBag,
+  GraduationCap, Home, Plane, MoreHorizontal, Edit2, Trash2,
+  ShoppingCart, Coffee, Briefcase, Dumbbell, PartyPopper, Cat, Film,
+  Car, Luggage, PiggyBank, Zap, Droplet, Wifi, Smartphone,
+  TrendingUp, CreditCard, Heart, Book, Music, Gift, Monitor, Shirt, Scissors, Baby,
+  Gamepad2, Wrench, Leaf, Bus, Train, Fuel, Camera, Shield, Activity, Landmark,
+  Umbrella, Tv, Stethoscope, Sofa, Ticket, Palmtree, Pizza, Building, Glasses, Star
+} from 'lucide-react';
 
-const COLORS = ['#3366CC', '#BA1A1A', '#DCC661', '#5A5F63', '#16A34A', '#A855F7', '#F97316'];
+const getIconComponent = (iconName) => {
+  if (!iconName) return MoreHorizontal;
+  const icons = { 
+    Laptop, GraduationCap, Home, Plane, Building2, BookOpen, 
+    Utensils, Banknote, BusFront, ShoppingBag, Wallet,
+    ShoppingCart, Coffee, Briefcase, Dumbbell, PartyPopper, Cat, Film,
+    Car, Luggage, PiggyBank, Zap, Droplet, Wifi, Smartphone,
+    TrendingUp, CreditCard, Heart, Book, Music, Gift, Monitor, Shirt, Scissors, Baby,
+    Gamepad2, Wrench, Leaf, Bus, Train, Fuel, Camera, Shield, Activity, Landmark,
+    Umbrella, Tv, Stethoscope, Sofa, Ticket, Palmtree, Pizza, Building, Glasses, Star
+  };
+  return icons[iconName] || MoreHorizontal;
+};
 
 const parseSafeDate = (rawDate) => {
   if (!rawDate) return new Date(NaN);
@@ -21,6 +47,8 @@ const parseSafeDate = (rawDate) => {
   return new Date(rawDate);
 };
 
+const COLORS = ['#3366CC', '#BA1A1A', '#DCC661', '#5A5F63', '#16A34A', '#A855F7', '#F97316'];
+
 const PDFPreview = () => {
   const navigate = useNavigate();
   const [activePage, setActivePage] = useState(1);
@@ -33,6 +61,7 @@ const PDFPreview = () => {
   const [prevTransactions, setPrevTransactions] = useState([]);
   const [rawSavings, setRawSavings] = useState([]);
   const [rawTargets, setRawTargets] = useState([]);
+  const [dbCategories, setDbCategories] = useState([]);
   const [dateString, setDateString] = useState('');
   const [cycleDates, setCycleDates] = useState({ currStart: null, currEnd: null, prevStart: null, prevEnd: null });
 
@@ -47,9 +76,8 @@ const PDFPreview = () => {
           setUserName(profile.name || profile.full_name || 'Thanh Thủy');
         }
 
-        // Thay đổi thành:
-const cycleType = localStorage.getItem('userCycleType') || profile?.cycle_type || '4_weeks';
-const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_anchor_date;
+        const cycleType = localStorage.getItem('userCycleType') || profile?.cycle_type || '4_weeks';
+        const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_anchor_date;
 
         let currentStart = new Date();
         currentStart.setHours(0,0,0,0);
@@ -107,20 +135,23 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
         setDateString(`${fmtDMY(currentStart)} - ${fmtDMY(currentEnd)}`);
         setCycleDates({ currStart: currentStart, currEnd: currentEnd, prevStart: prevStart, prevEnd: prevEnd });
 
-        const [currRes, prevRes, savingsRes, targetsRes] = await Promise.all([
+        const [currRes, prevRes, savingsRes, targetsRes, catRes] = await Promise.all([
           reportsApi.getReportData(fmtYMD(currentStart), fmtYMD(currentEnd)).catch(() => ({ data: [] })),
           reportsApi.getReportData(fmtYMD(prevStart), fmtYMD(prevEnd)).catch(() => ({ data: [] })),
           walletsApi.getHistory().catch(() => []),
-          remindersApi.getReminders().catch(() => []) // Bổ sung API lấy mục tiêu
+          remindersApi.getReminders().catch(() => []),
+          categoryApi.getCategories().catch(() => []) 
         ]);
 
         setCurrTransactions(Array.isArray(currRes) ? currRes : (currRes?.data || []));
         setPrevTransactions(Array.isArray(prevRes) ? prevRes : (prevRes?.data || []));
         setRawSavings(Array.isArray(savingsRes) ? savingsRes : (savingsRes?.data || []));
-        setRawTargets(Array.isArray(targetsRes) ? targetsRes : (targetsRes?.data || [])); // Lưu data mục tiêu
+        setRawTargets(Array.isArray(targetsRes) ? targetsRes : (targetsRes?.data || [])); 
+        setDbCategories(Array.isArray(catRes) ? catRes : (catRes?.data || []));
 
       } catch (err) {
-        setGlobalError("Không thể tạo báo cáo chi tiết do lỗi kết nối.");
+        console.error("Lỗi khi tải dữ liệu PDF:", err);
+        setGlobalError("Không thể tạo báo cáo chi tiết do lỗi kết nối. Hãy làm mới lại trang!");
       } finally {
         setIsLoading(false);
       }
@@ -141,18 +172,25 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
       const amt = parseInt(String(tx.amount || 0).replace(/\D/g, ''), 10) || 0;
       const isSaving = tx.type === 'saving' || tx.category?.name?.toLowerCase().includes('tiết kiệm');
       
+      const catId = tx.category?.id || 'other';
+      const catName = tx.category?.name || 'Khác';
+      const dbCat = dbCategories.find(c => String(c.id) === String(catId)) || {};
+      
+      const catColor = tx.category?.color_hex || tx.category?.color || dbCat.color_hex || dbCat.color || (tx.type === 'income' ? '#16A34A' : '#3B82F6');
+      const catIcon = tx.category?.icon || dbCat.icon || (tx.type === 'income' ? 'Banknote' : 'Wallet');
+
       if (tx.type === 'income') {
         currThu += amt;
-        const catName = tx.category?.name || 'Khác';
-        currIncomeGroups[catName] = (currIncomeGroups[catName] || 0) + amt;
+        if (!currIncomeGroups[catName]) currIncomeGroups[catName] = { amount: 0, color: catColor };
+        currIncomeGroups[catName].amount += amt;
       } else if (!isSaving && tx.type === 'expense') {
         currChi += amt;
-        const catName = tx.category?.name || 'Khác';
-        currExpenseGroups[catName] = (currExpenseGroups[catName] || 0) + amt;
+        if (!currExpenseGroups[catName]) currExpenseGroups[catName] = { amount: 0, color: catColor };
+        currExpenseGroups[catName].amount += amt;
       }
 
       if (!isSaving) {
-        currentTxsList.push(tx); 
+        currentTxsList.push({ ...tx, computedColor: catColor, computedIcon: catIcon }); 
       }
     });
 
@@ -164,7 +202,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
       else if (!isSaving && tx.type === 'expense') prevChi += amt;
     });
 
-    // BỔ SUNG XỬ LÝ MỤC TIÊU VÀO TỔNG CHI
     rawTargets.forEach(item => {
       const dueDate = parseSafeDate(item.due_date || item.deadline || item.date);
       const amount = Number(item.amount || item.target_amount || 0);
@@ -174,21 +211,21 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
       if (currStart && currEnd && dueDate >= currStart && dueDate <= currEnd) {
         currChi += amount;
         const catName = 'Mục tiêu tới hạn';
-        currExpenseGroups[catName] = (currExpenseGroups[catName] || 0) + amount;
+        const catColor = '#8B5CF6'; 
+        const catIcon = 'Landmark';
 
-        // Đẩy vào danh sách để hiện ở Bảng giao dịch bên dưới PDF
+        if (!currExpenseGroups[catName]) currExpenseGroups[catName] = { amount: 0, color: catColor };
+        currExpenseGroups[catName].amount += amount;
+
         currentTxsList.push({
-          transaction_date: dueDate.toISOString(),
-          category: { name: catName },
-          type: 'expense',
-          amount: amount
+          transaction_date: dueDate.toISOString(), category: { name: catName },
+          type: 'expense', amount: amount, computedColor: catColor, computedIcon: catIcon
         });
       } else if (prevStart && prevEnd && dueDate >= prevStart && dueDate <= prevEnd) {
         prevChi += amount;
       }
     });
 
-    // SỬA LOGIC TIẾT KIỆM (CỘNG NẠP, TRỪ RÚT)
     rawSavings.forEach(sv => {
       const amt = parseInt(String(sv.amount || 0).replace(/\D/g, ''), 10) || 0;
       let svDate = parseSafeDate(sv.date || sv.created_at || sv.transaction_date);
@@ -212,21 +249,12 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
     };
 
     const mapToChartData = (groupsObj) => {
-      const total = Object.values(groupsObj).reduce((a, b) => a + b, 0);
-      return Object.keys(groupsObj).map((key, index) => ({
-        name: key,
-        amount: groupsObj[key],
-        pct: total > 0 ? Math.round((groupsObj[key] / total) * 100) : 0,
-        color: COLORS[index % COLORS.length]
+      const total = Object.values(groupsObj).reduce((a, b) => a + b.amount, 0);
+      return Object.keys(groupsObj).map((key) => ({
+        name: key, amount: groupsObj[key].amount,
+        pct: total > 0 ? Math.round((groupsObj[key].amount / total) * 100) : 0,
+        color: groupsObj[key].color
       })).sort((a, b) => b.pct - a.pct);
-    };
-
-    const getEmoji = (catName, type) => {
-      if (type === 'income') return '💰';
-      if (catName.toLowerCase().includes('phòng') || catName.toLowerCase().includes('nhà')) return '🏠';
-      if (catName.toLowerCase().includes('ăn')) return '🍽️';
-      if (catName.toLowerCase().includes('di chuyển') || catName.toLowerCase().includes('xe')) return '🛵';
-      return '💸';
     };
 
     const groupedTxsMap = {};
@@ -239,15 +267,11 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
 
       if (!groupedTxsMap[key]) {
         groupedTxsMap[key] = {
-          category: catName,
-          type: type === 'income' ? 'Thu' : 'Chi',
-          rawType: type,
-          amount: 0,
-          latestDate: txDate
+          category: catName, type: type === 'income' ? 'Thu' : 'Chi', rawType: type,
+          amount: 0, latestDate: txDate, color: tx.computedColor, icon: tx.computedIcon
         };
       }
       groupedTxsMap[key].amount += amt;
-      
       if (!isNaN(txDate.getTime()) && txDate > groupedTxsMap[key].latestDate) {
         groupedTxsMap[key].latestDate = txDate;
       }
@@ -262,25 +286,18 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
         const d = group.latestDate;
         const dateStr = !isNaN(d.getTime()) ? `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}` : '...';
         return {
-          date: dateStr,
-          category: group.category,
-          type: group.type,
-          amount: `${group.amount.toLocaleString('vi-VN')} VNĐ`,
-          icon: getEmoji(group.category, group.rawType)
+          date: dateStr, category: group.category, type: group.type,
+          amount: `${group.amount.toLocaleString('vi-VN')} VNĐ`, icon: group.icon, color: group.color
         };
       });
 
     return {
       thu: currThu, chi: currChi, saved: currSaved,
-      thuChange: calcChange(currThu, prevThu),
-      chiChange: calcChange(currChi, prevChi),
-      savedChange: calcChange(currSaved, prevSaved),
-      incomeData: mapToChartData(currIncomeGroups),
-      expenseData: mapToChartData(currExpenseGroups),
+      thuChange: calcChange(currThu, prevThu), chiChange: calcChange(currChi, prevChi), savedChange: calcChange(currSaved, prevSaved),
+      incomeData: mapToChartData(currIncomeGroups), expenseData: mapToChartData(currExpenseGroups),
       recentTransactions: formattedTransactions
     };
-  // Bổ sung rawTargets vào trong ngoặc vuông
-  }, [currTransactions, prevTransactions, rawSavings, rawTargets, cycleDates]);
+  }, [currTransactions, prevTransactions, rawSavings, rawTargets, cycleDates, dbCategories]);
 
   const fmt = (n) => (Number(n) || 0).toLocaleString("vi-VN").replace(/,/g, ".") + " VNĐ";
 
@@ -343,94 +360,86 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#F5F3F4] lg:bg-[#DBDADB] print:hidden">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#3366CC]"></div>
-        <p className="mt-4 text-[#434653] font-medium text-sm lg:text-base">Đang khởi tạo tài liệu PDF...</p>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#525659] print:hidden">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white"></div>
+        <p className="mt-4 text-white font-medium text-sm lg:text-base">Đang khởi tạo tài liệu PDF...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F3F4] lg:bg-gradient-to-b lg:from-[#DBDADB] lg:to-[#DBDADB] print:bg-none print:bg-white">
+    /* ĐÃ SỬA LỖI GIAO DIỆN BỊ CẮT XÉN: Dùng fixed inset-0 để thoát khỏi Container mặc định của App */
+    <div className="fixed inset-0 z-[9999] flex flex-col w-screen h-screen bg-[#525659] print:relative print:inset-auto print:w-full print:h-auto print:bg-transparent overflow-hidden print:overflow-visible">
       
-      {/* BỔ SUNG ĐOẠN STYLE NÀY ĐỂ FIX LỖI MẤT MÀU KHI IN PDF */}
       <style type="text/css" media="print">
         {`
-          @page { 
-            size: A4 portrait; 
-            margin: 8mm; /* Giúp chừa lề đẹp và đánh bay URL/Ngày tháng mặc định của trình duyệt */
-          }
-          * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
+          @page { size: A4 portrait; margin: 8mm; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          body * { visibility: hidden; }
+          #printable-pdf, #printable-pdf * { visibility: visible; }
+          #printable-pdf { position: absolute; left: 0; top: 0; width: 100%; }
         `}
       </style>
       
-      {/* ====== TOP TOOLBAR (Responsive) ====== */}
-      <header className="sticky top-0 z-20 flex justify-between items-center px-4 lg:px-6 py-3 lg:py-4 bg-white shadow-sm print:hidden border-b border-[#E3E2E3]/50">
+      {/* ====== BỘ CÔNG CỤ PDF TRÊN CÙNG (Giao diện Dark Mode giống Chrome) ====== */}
+      <header className="shrink-0 z-20 flex justify-between items-center px-4 lg:px-6 py-3 bg-[#323639] shadow-[0_2px_4px_rgba(0,0,0,0.2)] print:hidden">
         <div className="flex flex-col">
-          <h1 className="font-serif font-bold text-[14px] sm:text-base text-[#1B1C1D] flex items-center gap-2 m-0">
-            Xem trước báo cáo
-            {globalError && <span className="text-[10px] lg:text-sm font-normal text-red-500 bg-red-50 px-2 py-0.5 rounded border border-red-100 hidden sm:inline-block">{globalError}</span>}
+          <h1 className="font-sans font-medium text-[13px] sm:text-[15px] text-white flex items-center gap-2.5 m-0">
+            <FileText size={18} className="text-[#F97316]" /> 
+            Baocao_Money4Week_{dateString.replace(/\//g, '')}.pdf
+            {globalError && <span className="text-[11px] font-normal text-red-200 bg-red-900/50 px-2 py-0.5 rounded border border-red-800 hidden sm:inline-block ml-2">{globalError}</span>}
           </h1>
-          <span className="font-sans text-[11px] text-[#737784] lg:hidden">Chu kỳ hiện tại</span>
         </div>
         
-        <div className="flex items-center gap-2 lg:gap-3">
-          <button onClick={() => window.print()} className="flex items-center justify-center gap-2 w-9 h-9 lg:w-auto lg:h-auto lg:px-4 lg:py-2 bg-[#E9E8E9] rounded-lg lg:rounded-sm hover:bg-gray-300 transition cursor-pointer">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v8M7 9l-3-3M7 9l3-3M2 11v1a1 1 0 001 1h8a1 1 0 001-1v-1" stroke="#3366CC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            <span className="hidden sm:inline text-sm font-semibold text-[#3366CC]">Tải PDF</span>
+        <div className="flex items-center gap-2">
+          <button onClick={() => window.print()} className="flex items-center justify-center p-2 rounded-full hover:bg-white/10 transition cursor-pointer text-white" title="Tải xuống PDF">
+            <Download size={20} />
           </button>
-          <button onClick={() => window.print()} className="flex items-center justify-center gap-2 w-9 h-9 lg:w-auto lg:h-auto lg:px-4 lg:py-2 bg-[#E9E8E9] rounded-lg lg:rounded-sm hover:bg-gray-300 transition cursor-pointer">
-            <svg width="16" height="15" viewBox="0 0 16 15" fill="none"><path d="M4 5V1h8v4M4 11H2a1 1 0 01-1-1V6a1 1 0 011-1h12a1 1 0 011 1v4a1 1 0 01-1 1h-2M4 11v3h8v-3" stroke="#3366CC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            <span className="hidden sm:inline text-sm font-semibold text-[#3366CC]">In</span>
+          <button onClick={() => window.print()} className="flex items-center justify-center p-2 rounded-full hover:bg-white/10 transition cursor-pointer text-white" title="In báo cáo">
+            <Printer size={20} />
           </button>
-          <button onClick={() => navigate('/reports')} className="flex items-center justify-center gap-2 w-9 h-9 lg:w-auto lg:h-auto lg:px-4 lg:py-2 bg-[#3366CC] rounded-lg lg:rounded-sm shadow-sm hover:bg-blue-700 transition cursor-pointer ml-1">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
-            <span className="hidden sm:inline text-sm font-semibold text-white">Đóng</span>
+          <div className="w-px h-5 bg-white/20 mx-1"></div>
+          <button onClick={() => navigate('/reports')} className="flex items-center justify-center p-2 rounded-full hover:bg-white/10 transition cursor-pointer text-white" title="Đóng trình xem">
+            <X size={22} />
           </button>
         </div>
       </header>
 
-      {/* ====== MAIN CONTENT ====== */}
-      <div className="flex flex-1 overflow-hidden print:overflow-visible print:block">
+      {/* ====== MAIN CONTENT KHU VỰC ĐỌC PDF ====== */}
+      <div className="flex-1 flex overflow-hidden print:overflow-visible print:block">
         
-        {/* LEFT SIDEBAR - Thumbnails (Ẩn trên Mobile) */}
-        <aside className="hidden lg:flex w-64 flex-col p-4 gap-6 bg-[#F5F3F4] border-r border-[#C3C6D5]/15 overflow-y-auto print:hidden">
-          <div className="flex flex-col items-center gap-2">
-            <div onClick={() => setActivePage(1)} className={`w-32 h-40 bg-white rounded-sm cursor-pointer p-2 flex flex-col gap-1 transition-all ${activePage === 1 ? 'shadow-[0_0_0_2px_#3366CC,0_1px_2px_rgba(0,0,0,0.05)]' : 'border border-[#C3C6D5]'}`}>
-              <div className="w-full h-2 bg-[#E3E2E3] rounded-sm" />
-              <div className="w-3/4 h-1 bg-[#E3E2E3] rounded-sm" />
-              <div className="flex gap-1 mt-1">
-                <div className="w-1/3 h-4 bg-[#E3E2E3] rounded-sm" />
-                <div className="w-1/3 h-4 bg-[#E3E2E3] rounded-sm" />
-                <div className="w-1/3 h-4 bg-[#E3E2E3] rounded-sm" />
+        {/* THANH BÊN TRÁI - Thumbnails */}
+        <aside className="hidden lg:flex w-[240px] flex-col p-4 gap-6 bg-[#323639] border-r border-black/20 overflow-y-auto print:hidden">
+          <div className="flex flex-col items-center gap-3">
+            <div onClick={() => setActivePage(1)} className={`w-[130px] h-[175px] bg-white cursor-pointer p-2 flex flex-col gap-1.5 transition-all shadow-[0_0_0_2px_#8AB4F8]`}>
+              <div className="w-full h-2.5 bg-[#E3E2E3] rounded-sm" />
+              <div className="w-3/4 h-1.5 bg-[#E3E2E3] rounded-sm" />
+              <div className="flex gap-1.5 mt-1.5">
+                <div className="w-1/3 h-5 bg-[#E3E2E3] rounded-sm" />
+                <div className="w-1/3 h-5 bg-[#E3E2E3] rounded-sm" />
+                <div className="w-1/3 h-5 bg-[#E3E2E3] rounded-sm" />
               </div>
-              <div className="w-full h-12 bg-[#E3E2E3] rounded-sm mt-1" />
-              <div className="w-full h-12 bg-[#E3E2E3] rounded-sm" />
+              <div className="w-full h-14 bg-[#E3E2E3] rounded-sm mt-1.5" />
+              <div className="w-full h-14 bg-[#E3E2E3] rounded-sm" />
             </div>
-            <span className={`text-xs font-bold ${activePage === 1 ? 'text-[#3366CC]' : 'text-[#434653]'}`}>Trang 1</span>
+            <span className={`text-[12px] font-bold text-[#8AB4F8]`}>1</span>
           </div>
         </aside>
 
-        {/* DOCUMENT VIEWER */}
-        <div className="flex-1 flex justify-center p-2 sm:p-4 lg:p-8 overflow-y-auto print:p-0 print:overflow-visible print:block">
+        {/* KHUNG HIỂN THỊ TỜ GIẤY */}
+        <div className="flex-1 flex justify-center p-4 sm:p-6 lg:p-10 overflow-y-auto custom-scrollbar print:p-0 print:overflow-visible print:block relative">
           
-          {/* Tờ giấy A4 (Responsive w-full trên Mobile) */}
-          <div className="w-full max-w-[800px] h-max bg-white shadow-sm lg:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.1),0_0_20px_rgba(0,0,0,0.05)] rounded-lg lg:rounded-sm relative print:w-full print:max-w-full print:shadow-none print:m-0 print:rounded-none">
+          {/* Tờ giấy A4 chuẩn xác kích thước */}
+          <div id="printable-pdf" className="w-full max-w-[794px] h-max bg-white shadow-[0_5px_15px_rgba(0,0,0,0.5)] print:shadow-none relative print:w-full print:max-w-full print:m-0">
             
-            {/* Watermark (Chữ mờ phía sau) */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden print:fixed print:inset-0">
-              <span className="font-serif font-black text-[48px] sm:text-[80px] lg:text-[128px] text-black/[0.03] -rotate-45 whitespace-nowrap">
+              <span className="font-serif font-black text-[48px] sm:text-[80px] lg:text-[120px] text-black/[0.03] -rotate-45 whitespace-nowrap">
                 MONEY4WEEK
               </span>
             </div>
 
-            {/* Nội dung báo cáo (Padding nhỏ trên Mobile, giữ nguyên khi Print) */}
-            <div className="relative z-10 p-4 sm:p-6 lg:px-12 lg:py-12 flex flex-col min-h-full print:p-8">
+            <div className="relative z-10 p-6 sm:p-8 lg:px-12 lg:py-12 flex flex-col min-h-full print:p-8">
               
-              {/* HEADER TỜ GIẤY */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end pb-4 lg:pb-6 border-b border-[#C3C6D5]/15 gap-3 lg:gap-0">
                 <div className="flex flex-col gap-1 lg:gap-2">
                   <h2 className="font-serif font-black text-[22px] lg:text-[30px] leading-tight lg:leading-9 tracking-[-0.75px] uppercase text-[#1B1C1D] m-0">
@@ -446,7 +455,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
                 </div>
               </div>
 
-              {/* TÓM TẮT THÔNG TIN */}
               <div className="flex flex-col sm:flex-row gap-3 lg:gap-8 mt-4 lg:mt-8 mb-6 lg:mb-10">
                 <div className="flex-1 p-3 lg:p-4 bg-[#FAF9FA] border border-[#C3C6D5]/15 rounded-md lg:rounded-sm">
                   <p className="text-[10px] lg:text-xs tracking-[0.6px] uppercase text-[#5A5F63] mb-1 m-0">Họ và tên</p>
@@ -458,7 +466,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
                 </div>
               </div>
 
-              {/* 3 CỘT SỐ LIỆU (Mobile xếp dọc, Desktop xếp ngang) */}
               <div className="flex flex-col sm:flex-row gap-3 lg:gap-6 mb-6 lg:mb-12">
                 <div className="flex-1 p-3 lg:p-4 bg-[rgba(51,102,204,0.05)] border-t-[3px] lg:border-t-4 border-[#3366CC] rounded-md lg:rounded relative">
                   <div className="flex items-center gap-2 mb-1 lg:mb-2">
@@ -494,7 +501,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
                 </div>
               </div>
 
-              {/* BIỂU ĐỒ TRÒN (Mobile xếp dọc, Desktop xếp ngang) */}
               <div className="mb-8 lg:mb-10">
                 <h3 className="font-serif font-bold text-[16px] lg:text-lg text-[#1B1C1D] mb-4 lg:mb-6">
                   Cơ cấu Thu & Chi
@@ -536,13 +542,11 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
                 </div>
               </div>
 
-              {/* BẢNG GIAO DỊCH (Có Scroll ngang trên Mobile để bảo vệ cấu trúc In) */}
               <div className="mb-6 lg:mb-8">
                 <h3 className="font-serif font-bold text-[16px] lg:text-lg text-[#1B1C1D] mb-3 lg:mb-4">
                   Tổng hợp giao dịch theo danh mục
                 </h3>
                 <div className="bg-[#FAF9FA] border border-[#C3C6D5]/15 rounded-md lg:rounded-sm overflow-x-auto print:overflow-visible">
-                  {/* min-w-[500px] đảm bảo bảng không bị bóp méo chữ trên màn hình nhỏ */}
                   <table className="w-full min-w-[500px] lg:min-w-full print:min-w-full">
                     <thead>
                       <tr className="bg-[#F5F3F4] border-b border-[#C3C6D5]/15">
@@ -559,9 +563,18 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
                       {reportData.recentTransactions.map((tx, i) => (
                         <tr key={i} className="border-b border-[#C3C6D5]/15">
                           <td className="px-3 lg:px-4 py-2 lg:py-3 text-[12px] lg:text-sm text-[#1B1C1D]">{tx.date}</td>
-                          <td className="px-3 lg:px-4 py-2 lg:py-3 text-[12px] lg:text-sm text-[#1B1C1D] flex items-center gap-2">
-                            <span>{tx.icon}</span>
-                            {tx.category}
+                          <td className="px-3 lg:px-4 py-2 lg:py-3 text-[12px] lg:text-sm text-[#1B1C1D]">
+                            <div className="flex items-center gap-2.5">
+                              {(() => {
+                                const IconComp = getIconComponent(tx.icon);
+                                return (
+                                  <div className="w-6 h-6 flex items-center justify-center rounded-md shrink-0" style={{ backgroundColor: `${tx.color}20` }}>
+                                    <IconComp size={14} style={{ color: tx.color }} />
+                                  </div>
+                                );
+                              })()}
+                              <span>{tx.category}</span>
+                            </div>
                           </td>
                           <td className={`px-3 lg:px-4 py-2 lg:py-3 text-[12px] lg:text-sm font-medium ${tx.type === 'Chi' ? 'text-[#BA1A1A]' : 'text-[#3366CC]'}`}>
                             {tx.type}
@@ -586,7 +599,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
                 </div>
               </div>
 
-              {/* FOOTER TỜ GIẤY */}
               <div className="flex flex-col sm:flex-row justify-between items-center pt-4 lg:pt-6 border-t border-[#C3C6D5]/15 mt-auto gap-2 sm:gap-0">
                 <span className="text-[10px] lg:text-xs text-[#434653] text-center sm:text-left">@2026.Money4Week. Quản lý tài chính cá nhân. Được xuất bởi: {userName}</span>
                 <span className="text-[10px] lg:text-xs text-[#434653]">Trang 1/1</span>

@@ -4,12 +4,35 @@ import reportsApi from '../api/reportsApi';
 import transactionsApi from '../api/transactionsApi'; 
 import usersApi from '../api/usersApi'; 
 import walletsApi from '../api/walletsApi'; 
-import { X } from 'lucide-react';
 import remindersApi from '../api/remindersApi';
 import categoryApi from '../api/categoryApi';
-
+import { 
+  X, Wallet, Plus, Save, Building2, BookOpen, Laptop, ShieldCheck,
+  ChevronDown, CalendarDays, CheckCircle2,
+  Utensils, Banknote, BusFront, ShoppingBag,
+  GraduationCap, Home, Plane, MoreHorizontal, Edit2, Trash2,
+  ShoppingCart, Coffee, Briefcase, Dumbbell, PartyPopper, Cat, Film,
+  Car, Luggage, PiggyBank, Zap, Droplet, Wifi, Smartphone,
+  TrendingUp, CreditCard, Heart, Book, Music, Gift, Monitor, Shirt, Scissors, Baby,
+  Gamepad2, Wrench, Leaf, Bus, Train, Fuel, Camera, Shield, Activity, Landmark,
+  Umbrella, Tv, Stethoscope, Sofa, Ticket, Palmtree, Pizza, Building, Glasses, Star
+} from 'lucide-react';
 
 const COLORS = ["#F97316", "#3B82F6", "#EAB308", "#A855F7", "#16A34A", "#EC4899", "#06B6D4"];
+
+const getIconComponent = (iconName) => {
+  if (!iconName) return MoreHorizontal;
+  const icons = { 
+    Laptop, GraduationCap, Home, Plane, Building2, BookOpen, 
+    Utensils, Banknote, BusFront, ShoppingBag, Wallet,
+    ShoppingCart, Coffee, Briefcase, Dumbbell, PartyPopper, Cat, Film,
+    Car, Luggage, PiggyBank, Zap, Droplet, Wifi, Smartphone,
+    TrendingUp, CreditCard, Heart, Book, Music, Gift, Monitor, Shirt, Scissors, Baby,
+    Gamepad2, Wrench, Leaf, Bus, Train, Fuel, Camera, Shield, Activity, Landmark,
+    Umbrella, Tv, Stethoscope, Sofa, Ticket, Palmtree, Pizza, Building, Glasses, Star
+  };
+  return icons[iconName] || MoreHorizontal;
+};
 
 const initCycle = () => {
   return { weekOptions: [], startDate: '', endDate: '' };
@@ -69,9 +92,8 @@ const Reports = () => {
     try {
       const profile = await usersApi.getProfile().catch(() => null);
       
-      // Thay đổi thành:
-const cycleType = localStorage.getItem('userCycleType') || profile?.cycle_type || '4_weeks';
-const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_anchor_date;
+      const cycleType = localStorage.getItem('userCycleType') || profile?.cycle_type || '4_weeks';
+      const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_anchor_date;
 
       const today = new Date();
       today.setHours(0,0,0,0);
@@ -137,16 +159,14 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
 
       const [transRes, catRes, savingsRes, targetsRes] = await Promise.all([
         reportsApi.getReportData(exactStart, exactEnd).catch(() => []),
-        categoryApi.getCategories().catch(() => []), // Sửa thành categoryApi
-        walletsApi.getHistory().catch(() => []), // <--- BẠN QUÊN SỬA DÒNG NÀY NÈ
+        categoryApi.getCategories().catch(() => []),
+        walletsApi.getHistory().catch(() => []),
         remindersApi.getReminders().catch(() => []) 
       ]);
       
       setRawTransactions(Array.isArray(transRes) ? transRes : (transRes?.data || []));
       setDbCategories(Array.isArray(catRes) ? catRes : (catRes?.data || []));
       setRawSavings(Array.isArray(savingsRes) ? savingsRes : (savingsRes?.data || [])); 
-      
-      // Khai báo an toàn mảng mục tiêu trả về
       setRawTargets(Array.isArray(targetsRes) ? targetsRes : (targetsRes?.data || [])); 
 
     } catch (err) {
@@ -171,7 +191,10 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
 
   const filterCategories = useMemo(() => {
     return dbCategories.map((c, idx) => ({
-      id: c.id, name: c.name, color: c.color_hex || c.color || COLORS[idx % COLORS.length] 
+      id: c.id, 
+      name: c.name, 
+      color: c.color_hex || c.color || COLORS[idx % COLORS.length],
+      icon: c.icon
     }));
   }, [dbCategories]);
 
@@ -206,20 +229,23 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
 
       if (targetWeekId) {
         if (tx.type === 'income') {
-          // Xử lý lưu thu nhập theo danh mục
           const catId = tx.category?.id || 'other_income';
           const catName = tx.category?.name || 'Thu nhập khác';
-          const catColor = tx.category?.color_hex || tx.category?.color || filterCategories.find(c => String(c.id) === String(catId))?.color || "#16A34A";
+          const catFallback = filterCategories.find(c => String(c.id) === String(catId));
+          const catColor = tx.category?.color_hex || tx.category?.color || catFallback?.color || "#16A34A";
+          const catIcon = tx.category?.icon || catFallback?.icon || 'Banknote';
           
           incomes.push({
             id: tx.id || Math.random().toString(),
             weekId: targetWeekId, catId: catId, category: catName, detail: tx.note || "Giao dịch thu nhập",
-            amount: amount, color: catColor, iconBg: `bg-[${catColor}20]`, iconColor: `text-[${catColor}]`
+            amount: amount, color: catColor, icon: catIcon, iconBg: `bg-[${catColor}20]`, iconColor: `text-[${catColor}]`
           });
         } else if (tx.type === 'expense') {
           const catId = tx.category?.id || 'other';
           const catName = tx.category?.name || 'Khác';
-          const catColor = tx.category?.color_hex || tx.category?.color || filterCategories.find(c => String(c.id) === String(catId))?.color || "#3B82F6";
+          const catFallback = filterCategories.find(c => String(c.id) === String(catId));
+          const catColor = tx.category?.color_hex || tx.category?.color || catFallback?.color || "#3B82F6";
+          const catIcon = tx.category?.icon || catFallback?.icon || 'Wallet';
           
           if (!catWeeklyTotals[catId]) catWeeklyTotals[catId] = { w1: 0, w2: 0, w3: 0, w4: 0 };
           catWeeklyTotals[catId][targetWeekId] += amount;
@@ -227,10 +253,10 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
           expenses.push({
             id: tx.id || Math.random().toString(),
             weekId: targetWeekId, catId: catId, category: catName, detail: tx.note || "Giao dịch chi tiêu",
-            amount: amount, color: catColor, iconBg: `bg-[${catColor}20]`, iconColor: `text-[${catColor}]`
+            amount: amount, color: catColor, icon: catIcon, iconBg: `bg-[${catColor}20]`, iconColor: `text-[${catColor}]`
           });
         }
-      } // <-- DẤU NGOẶC BỊ THIẾU Ở ĐÂY ĐÃ ĐƯỢC BỔ SUNG
+      } 
     });
 
     rawTargets.forEach(item => {
@@ -264,6 +290,7 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
           detail: item.name || item.note || "Đóng tiền mục tiêu",
           amount: amount, 
           color: catColor, 
+          icon: 'Landmark',
           iconBg: `bg-[${catColor}20]`, 
           iconColor: `text-[${catColor}]`
         });
@@ -331,9 +358,7 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
 
   const isNegativeSaving = summaryData.cycleSaved < 0;
 
-  // 2. Bên trong donutData thì XÓA dòng cũ đi
   const { donutExpense, donutIncome } = useMemo(() => {
-    // 1. Tính toán cho Chi tiêu (Expense)
     const filteredExps = timeFilter === 'all' ? rawExpenses : rawExpenses.filter(e => e.weekId === timeFilter);
     const groupedExps = {};
     let totalChi = 0;
@@ -348,7 +373,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
       ...cat, pct: totalChi > 0 ? Math.round((cat.amount / totalChi) * 100) : 0
     })).sort((a,b) => b.amount - a.amount);
 
-    // 2. Tính toán cho Thu nhập (Income)
     const filteredIncs = timeFilter === 'all' ? rawIncomes : rawIncomes.filter(e => e.weekId === timeFilter);
     const groupedIncs = {};
     let totalThu = 0;
@@ -370,7 +394,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
   }, [timeFilter, rawExpenses, rawIncomes]);
 
   const tableData = useMemo(() => {
-    // Gắn cờ isIncome ngay từ đầu để tối ưu hiệu suất thay vì dùng .some() lặp lại nhiều lần
     let combined = [
       ...rawExpenses.map(e => ({ ...e, isIncome: false })), 
       ...rawIncomes.map(e => ({ ...e, isIncome: true }))
@@ -380,12 +403,10 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
     if (timeFilter !== 'all') filtered = filtered.filter(e => e.weekId === timeFilter);
     if (catFilter !== 'all') filtered = filtered.filter(e => e.catId === catFilter);
 
-    // Tính tổng Thu và tổng Chi hoàn toàn riêng biệt
     const totalExp = filtered.filter(e => !e.isIncome).reduce((sum, e) => sum + Math.abs(e.amount), 0);
     const totalInc = filtered.filter(e => e.isIncome).reduce((sum, e) => sum + Math.abs(e.amount), 0);
     
     let result = filtered.map(e => {
-      // Xác định mẫu số dựa vào loại giao dịch
       const targetTotal = e.isIncome ? totalInc : totalExp;
       
       return {
@@ -452,8 +473,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
     );
   };
 
-  
-
   if (isLoading || weekOptions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] bg-transparent gap-4">
@@ -501,14 +520,12 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
       {/* Filter Bar */}
       <div className="w-full max-w-[1152px] flex flex-col lg:flex-row items-start lg:items-center p-4 gap-4 bg-white border border-[#E3E2E3]/50 rounded-2xl shadow-[0px_4px_24px_rgba(27,28,29,0.04)] relative z-20">
         
-        {/* Hàng 1 (Mobile): Chữ Bộ lọc và các nút (Xóa / Xuất PDF) */}
         <div className="flex justify-between items-center w-full lg:w-auto">
           <div className="flex items-center gap-2">
             <svg width="18" height="12" viewBox="0 0 18 12" fill="none"><path d="M0 1h18M4 6h10M7 11h4" stroke="#434653" strokeWidth="2" strokeLinecap="round" /></svg>
             <span className="font-sans text-[14px] font-semibold text-[#1B1C1D]">Bộ lọc:</span>
           </div>
 
-          {/* Cụm nút chỉ hiện ở Hàng 1 trên Mobile */}
           <div className="flex lg:hidden items-center gap-3">
             <button onClick={() => { setTimeFilter('all'); setCatFilter('all'); setSortType('default'); }} className={`font-sans text-[12px] font-medium transition-all duration-300 cursor-pointer ${(timeFilter !== 'all' || catFilter !== 'all' || sortType !== 'default') ? 'text-[#BA1A1A] underline' : 'hidden'}`}>
               Xóa lọc
@@ -520,7 +537,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
           </div>
         </div>
 
-        {/* Hàng 2 (Mobile): 2 Nút Dropdown chia đôi màn hình */}
         <div className="grid grid-cols-2 lg:flex lg:flex-row gap-3 w-full lg:w-auto flex-1 lg:ml-2">
           {/* Filter: Thời gian */}
           <div className="relative w-full">
@@ -529,7 +545,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
               <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className={`shrink-0 transition-transform ${activeDropdown === 'time' ? 'rotate-180' : ''}`}><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
             {activeDropdown === 'time' && (
-              // Thêm w-max và whitespace-nowrap để bảo đảm menu nở rộng theo chữ
               <div className="absolute top-full left-0 mt-2 w-max min-w-[240px] lg:w-56 bg-white border border-[#E3E2E3]/50 shadow-lg rounded-xl overflow-hidden py-2 z-30 animate-fade-in">
                 <button onClick={() => {setTimeFilter('all'); setActiveDropdown(null);}} className={`w-full text-left px-4 py-3 lg:py-2.5 font-sans text-[14px] whitespace-nowrap hover:bg-gray-50 transition-colors ${timeFilter === 'all' ? 'text-[#094CB2] font-bold bg-[#094CB2]/5' : 'text-[#1B1C1D]'}`}>Tất cả thời gian</button>
                 {weekOptions.map(wk => (
@@ -548,7 +563,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
               <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className={`shrink-0 transition-transform ${activeDropdown === 'cat' ? 'rotate-180' : ''}`}><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
             {activeDropdown === 'cat' && (
-              // Căn phải menu này (right-0) để không bị lọt khỏi màn hình điện thoại
               <div className="absolute top-full right-0 lg:left-0 mt-2 w-max min-w-[200px] lg:w-48 max-h-[300px] overflow-y-auto bg-white border border-[#E3E2E3]/50 shadow-lg rounded-xl py-2 z-30 animate-fade-in custom-scrollbar">
                 <button onClick={() => {setCatFilter('all'); setActiveDropdown(null);}} className={`w-full text-left px-4 py-3 lg:py-2.5 font-sans text-[14px] whitespace-nowrap hover:bg-gray-50 transition-colors ${catFilter === 'all' ? 'text-[#094CB2] font-bold bg-[#094CB2]/5' : 'text-[#1B1C1D]'}`}>Tất cả danh mục</button>
                 {filterCategories.map(cat => (
@@ -561,7 +575,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
           </div>
         </div>
 
-        {/* Hàng Desktop: Các nút nằm ở góc phải (Bị ẩn trên Mobile) */}
         <div className="hidden lg:flex items-center justify-end w-full lg:w-auto gap-4">
           <button onClick={() => { setTimeFilter('all'); setCatFilter('all'); setSortType('default'); }} className={`font-sans text-[14px] min-h-[44px] font-medium transition-all duration-300 cursor-pointer ${(timeFilter !== 'all' || catFilter !== 'all' || sortType !== 'default') ? 'text-[#BA1A1A] hover:underline opacity-100' : 'opacity-0 pointer-events-none w-0 overflow-hidden'}`}>Xóa bộ lọc</button>
           <button onClick={() => navigate('/reports/preview')} className="flex items-center gap-2 px-4 py-2 bg-[#EFEDEE] rounded-lg font-sans text-[14px] font-bold text-[#094CB2] hover:bg-gray-200 transition-colors cursor-pointer min-h-[44px]">
@@ -599,9 +612,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
 
       {/* Summary Stats Grid */}
       <div className="w-full max-w-[1152px] flex flex-col lg:flex-row gap-4 lg:gap-6 mt-4 lg:mt-0">
-        {/* ... (Giữ nguyên 2 card Tổng thu nhập và Tổng chi tiêu của bạn) ... */}
-        
-        {/* Card: Tổng tiền để dành (Cập nhật logic màu sắc) */}
         <div className={`flex-1 flex flex-row lg:flex-col justify-start items-center lg:items-start p-4 lg:p-6 gap-4 border rounded-2xl shadow-[0px_4px_24px_rgba(27,28,29,0.04)] relative overflow-hidden transition-all w-full ${
           isNegativeSaving 
             ? 'bg-[rgba(186,26,26,0.05)] border-[rgba(186,26,26,0.2)]' 
@@ -615,7 +625,6 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
             <span className={`font-sans text-[11px] lg:text-[14px] font-medium uppercase lg:capitalize mb-0.5 ${isNegativeSaving ? 'text-[#BA1A1A]' : 'text-[#4A3F00]'}`}>
               {timeFilter === 'all' ? 'Biến động tiết kiệm' : `Biến động ${weekOptions.find(w => w.id === timeFilter)?.name || ''}`}
             </span>
-            {/* Nếu âm thì hiển thị dấu trừ phía trước số tiền cho trực quan */}
             <p className={`font-serif text-[18px] lg:text-[30px] font-bold m-0 leading-tight ${isNegativeSaving ? 'text-[#BA1A1A]' : 'text-[#4A3F00]'}`}>
               {isNegativeSaving ? '-' : ''}{fmt(Math.abs(summaryData.cycleSaved))}
             </p>
@@ -691,6 +700,7 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
         </div>
 
       </div>
+      
       {/* Data Table -> List Card on Mobile */}
       <div className="w-full max-w-[1152px] flex flex-col p-4 lg:p-6 bg-white border border-[#E3E2E3]/50 rounded-2xl shadow-[0px_4px_24px_rgba(27,28,29,0.04)] relative z-10">
         <div className="flex justify-between items-center w-full mb-4 lg:mb-6">
@@ -728,15 +738,23 @@ const anchorDateStr = localStorage.getItem('userCycleAnchor') || profile?.cycle_
               <div key={row.id} className="flex flex-col lg:flex-row justify-between items-start lg:items-center border-b border-[#E3E2E3]/30 py-4 px-1 lg:px-2 hover:bg-gray-50/50 transition-colors duration-200 gap-3 lg:gap-0">
                 <div className="flex justify-between items-start w-full lg:w-[45%]">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 flex items-center justify-center rounded-xl shrink-0`} style={{ backgroundColor: `${row.color}20` }}>
-                      <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: row.color }}></div>
-                    </div>
+                    
+                    {/* Phần Icon đã được sửa để hiển thị đúng biểu tượng */}
+                    {(() => {
+                      const IconComp = getIconComponent(row.icon);
+                      return (
+                        <div className={`w-10 h-10 flex items-center justify-center rounded-xl shrink-0`} style={{ backgroundColor: `${row.color}20` }}>
+                          <IconComp size={20} style={{ color: row.color }} />
+                        </div>
+                      );
+                    })()}
+
                     <div className="flex flex-col gap-0.5">
                       <p className="font-sans text-[14px] font-semibold text-[#1B1C1D] m-0">{row.category}</p>
                       <p className="font-sans text-[12px] text-[#434653] m-0 truncate max-w-[180px] lg:max-w-[200px]">{row.detail}</p>
                     </div>
                   </div>
-                  {/* Số tiền trên Mobile (Thêm màu xanh nếu là thu nhập) */}
+                  {/* Số tiền trên Mobile */}
                   <span className={`font-sans text-[14px] font-bold block lg:hidden ${row.isIncome ? 'text-[#16A34A]' : 'text-[#1B1C1D]'}`}>{fmt(row.amount)}</span>
                 </div>
                 
