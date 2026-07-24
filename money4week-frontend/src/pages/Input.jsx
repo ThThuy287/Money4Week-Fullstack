@@ -212,6 +212,11 @@ const Input = () => {
         let total = 0; const groups = {};
         
         txs.forEach(tx => {
+          // --- HACK FIX: Bỏ qua các giao dịch Nạp/Rút ví tiết kiệm ---
+          if (tx.note && (tx.note.includes('Nạp tiền vào ví:') || tx.note.includes('[Nạp ví]') || tx.note.includes('Rút tiền từ ví:') || tx.note.includes('[Rút ví]'))) {
+              return; // Dừng lại, không cộng số tiền này vào bất kỳ danh mục nào
+          }
+
           const catId = tx.category?.id || 'other';
           const catName = tx.category?.name || 'Khác';
           const catColor = tx.category?.color || (detailType === 'expense' ? '#BA1A1A' : '#16A34A');
@@ -225,7 +230,6 @@ const Input = () => {
                  groups[catId] = { id: catId, name: catName, amount: 0, color: catColor, limit: catLimit };
              }
              
-             // FIX: Chặn lỗi NaN bằng cách ép kiểu về số, nếu rỗng/lỗi thì lấy giá trị 0
              const safeAmount = Number(tx.amount) || 0;
              
              groups[catId].amount += safeAmount;
@@ -624,15 +628,17 @@ const Input = () => {
                         {sign} {Number(item.amount).toLocaleString('vi-VN')} VNĐ
                       </span>
                       
-                      {/* Cụm nút Sửa / Xóa (đã được bạn setup ẩn/hiện khi hover bằng Tailwind) */}
-                      <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => handleEditClick(item)} className="p-1.5 text-[#094CB2] hover:bg-blue-50 rounded-md transition-colors" title="Sửa">
-                          <Edit2 size={14} />
-                        </button>
-                        <button onClick={() => handleDeleteTransaction(item.id)} className="p-1.5 text-[#BA1A1A] hover:bg-red-50 rounded-md transition-colors" title="Xóa">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+                      {/* --- ẨN NÚT SỬA/XÓA NẾU LÀ GIAO DỊCH VÍ --- */}
+                      {!isWalletTransaction && (
+                        <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => handleEditClick(item)} className="p-1.5 text-[#094CB2] hover:bg-blue-50 rounded-md transition-colors" title="Sửa">
+                            <Edit2 size={14} />
+                          </button>
+                          <button onClick={() => handleDeleteTransaction(item.id)} className="p-1.5 text-[#BA1A1A] hover:bg-red-50 rounded-md transition-colors" title="Xóa">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
