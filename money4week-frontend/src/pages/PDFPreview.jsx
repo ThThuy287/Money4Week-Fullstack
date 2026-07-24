@@ -168,8 +168,7 @@ const PDFPreview = () => {
     const { currStart, currEnd, prevStart, prevEnd } = cycleDates;
 
     currTransactions.forEach(tx => {
-      const amt = parseInt(String(tx.amount || 0).replace(/\D/g, ''), 10) || 0;
-      const isSaving = tx.type === 'saving' || tx.category?.name?.toLowerCase().includes('tiết kiệm');
+      const amt = Number(tx.amount) || 0;
       
       const catId = tx.category?.id || 'other';
       const catName = tx.category?.name || 'Khác';
@@ -182,23 +181,20 @@ const PDFPreview = () => {
         currThu += amt;
         if (!currIncomeGroups[catName]) currIncomeGroups[catName] = { amount: 0, color: catColor };
         currIncomeGroups[catName].amount += amt;
-      } else if (!isSaving && tx.type === 'expense') {
+      } else if (tx.type === 'expense') {
         currChi += amt;
         if (!currExpenseGroups[catName]) currExpenseGroups[catName] = { amount: 0, color: catColor };
         currExpenseGroups[catName].amount += amt;
       }
 
-      if (!isSaving) {
-        currentTxsList.push({ ...tx, computedColor: catColor, computedIcon: catIcon }); 
-      }
+      currentTxsList.push({ ...tx, computedColor: catColor, computedIcon: catIcon }); 
     });
 
     prevTransactions.forEach(tx => {
-      const amt = parseInt(String(tx.amount || 0).replace(/\D/g, ''), 10) || 0;
-      const isSaving = tx.type === 'saving' || tx.category?.name?.toLowerCase().includes('tiết kiệm');
+      const amt = Number(tx.amount) || 0;
       
       if (tx.type === 'income') prevThu += amt;
-      else if (!isSaving && tx.type === 'expense') prevChi += amt;
+      else if (tx.type === 'expense') prevChi += amt;
     });
 
     rawTargets.forEach(item => {
@@ -226,7 +222,7 @@ const PDFPreview = () => {
     });
 
     rawSavings.forEach(sv => {
-      const amt = parseInt(String(sv.amount || 0).replace(/\D/g, ''), 10) || 0;
+      const amt = Number(sv.amount) || 0;
       let svDate = parseSafeDate(sv.date || sv.created_at || sv.transaction_date);
 
       if (isNaN(svDate.getTime()) || amt === 0) return;
@@ -261,7 +257,7 @@ const PDFPreview = () => {
       const catName = tx.category?.name || 'Khác';
       const type = tx.type;
       const key = `${catName}_${type}`;
-      const amt = parseInt(String(tx.amount || 0).replace(/\D/g, ''), 10) || 0;
+      const amt = Number(tx.amount) || 0;
       const txDate = parseSafeDate(tx.date || tx.transaction_date);
 
       if (!groupedTxsMap[key]) {
@@ -486,7 +482,7 @@ const PDFPreview = () => {
                 <div className="flex-1 p-4 bg-[#FAF9FA] border border-[#C3C6D5]/15 rounded-md lg:rounded-sm">
                   <h4 className="font-serif font-bold text-[13px] lg:text-sm text-center text-[#1B1C1D] mb-4">Cơ cấu Thu nhập</h4>
                   <div className="flex items-center gap-4">
-                    <DonutChart data={reportData.incomeData} centerText="100%" />
+                    <DonutChart data={reportData.incomeData} centerText={fmt(reportData.thu)} />
                     <div className="flex flex-col gap-2 w-full">
                       {reportData.incomeData.length === 0 && <span className="text-xs italic text-gray-500">Chưa có thu nhập</span>}
                       {reportData.incomeData.slice(0, 4).map((item) => (
@@ -503,7 +499,7 @@ const PDFPreview = () => {
                 <div className="flex-1 p-4 bg-[#FAF9FA] border border-[#C3C6D5]/15 rounded-md lg:rounded-sm">
                   <h4 className="font-serif font-bold text-[13px] lg:text-sm text-center text-[#1B1C1D] mb-4">Cơ cấu Chi tiêu</h4>
                   <div className="flex items-center gap-4">
-                    <DonutChart data={reportData.expenseData} centerText="100%" />
+                    <DonutChart data={reportData.expenseData} centerText={fmt(reportData.chi)} />
                     <div className="flex flex-col gap-2 w-full">
                       {reportData.expenseData.length === 0 && <span className="text-xs italic text-gray-500">Chưa có chi tiêu</span>}
                       {reportData.expenseData.slice(0, 4).map((item) => (

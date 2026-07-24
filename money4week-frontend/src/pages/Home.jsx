@@ -225,14 +225,16 @@ const Home = () => {
             const amt = Number(tx.amount || 0);
             const txDate = parseSafeDate(tx.date || tx.transaction_date);
             
-            if (tx.type === 'income') cIncome += amt;
-            else if (tx.type === 'expense') cExpense += amt;
-            else if (tx.type === 'saving') cSaving += amt;
+            // Map chuẩn logic: Nạp tiết kiệm -> Chi, Rút tiết kiệm -> Thu
+            const actualType = tx.type === 'saving' ? 'expense' : (tx.type === 'withdraw' ? 'income' : tx.type);
+            
+            if (actualType === 'income') cIncome += amt;
+            else if (actualType === 'expense') cExpense += amt;
             
             for(let i=0; i<4; i++) {
                 if (txDate >= chartData[i].start && txDate <= chartData[i].end) {
-                    if (tx.type === 'income') chartData[i].income += amt;
-                    else if (tx.type === 'expense') chartData[i].expense += amt;
+                    if (actualType === 'income') chartData[i].income += amt;
+                    else if (actualType === 'expense') chartData[i].expense += amt;
                     break;
                 }
             }
@@ -259,8 +261,11 @@ const Home = () => {
         let pIncome = 0; let pExpense = 0;
         prevTxs.forEach(tx => {
             const amt = Number(tx.amount || 0);
-            if (tx.type === 'income') pIncome += amt;
-            else if (tx.type === 'expense') pExpense += amt;
+            
+            const actualType = tx.type === 'saving' ? 'expense' : (tx.type === 'withdraw' ? 'income' : tx.type);
+            
+            if (actualType === 'income') pIncome += amt;
+            else if (actualType === 'expense') pExpense += amt;
         });
 
         remindersList.forEach(item => {

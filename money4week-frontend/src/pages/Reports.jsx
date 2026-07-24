@@ -217,18 +217,21 @@ const Reports = () => {
       const amount = Number(tx.amount) || 0;
       let targetWeekId = null;
 
+      // Map chuẩn logic: Nạp tiết kiệm -> Chi, Rút tiết kiệm -> Thu
+      const actualType = tx.type === 'saving' ? 'expense' : (tx.type === 'withdraw' ? 'income' : tx.type);
+
       for (let i = 0; i < weekOptions.length; i++) {
         if (txDate >= weekOptions[i].startObj && txDate <= weekOptions[i].endObj) {
           targetWeekId = weekOptions[i].id;
           
-          if (tx.type === 'income') wData[i].thu += amount;
-          else if (tx.type === 'expense') wData[i].chi += amount;
+          if (actualType === 'income') wData[i].thu += amount;
+          else if (actualType === 'expense') wData[i].chi += amount;
           break;
         }
       }
 
       if (targetWeekId) {
-        if (tx.type === 'income') {
+        if (actualType === 'income') {
           const catId = tx.category?.id || 'other_income';
           const catName = tx.category?.name || 'Thu nhập khác';
           const catFallback = filterCategories.find(c => String(c.id) === String(catId));
@@ -240,7 +243,7 @@ const Reports = () => {
             weekId: targetWeekId, catId: catId, category: catName, detail: tx.note || "Giao dịch thu nhập",
             amount: amount, color: catColor, icon: catIcon, iconBg: `bg-[${catColor}20]`, iconColor: `text-[${catColor}]`
           });
-        } else if (tx.type === 'expense') {
+        } else if (actualType === 'expense') {
           const catId = tx.category?.id || 'other';
           const catName = tx.category?.name || 'Khác';
           const catFallback = filterCategories.find(c => String(c.id) === String(catId));
