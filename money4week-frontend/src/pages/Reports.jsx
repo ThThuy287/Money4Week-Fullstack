@@ -232,24 +232,56 @@ const Reports = () => {
 
       if (targetWeekId) {
         if (actualType === 'income') {
-          const catId = tx.category?.id || 'other_income';
-          const catName = tx.category?.name || 'Thu nhập khác';
+          let catId = tx.category?.id || 'other_income';
+          let catName = tx.category?.name || 'Thu nhập khác';
           const catFallback = filterCategories.find(c => String(c.id) === String(catId));
-          const catColor = tx.category?.color_hex || tx.category?.color || catFallback?.color || "#16A34A";
-          const catIcon = tx.category?.icon || catFallback?.icon || 'Banknote';
+          let catColor = tx.category?.color_hex || tx.category?.color || catFallback?.color || "#16A34A";
+          let catIcon = tx.category?.icon || catFallback?.icon || 'Banknote';
           
+          // --- HACK FIX CHUYÊN BIỆT CHO VÍ TIẾT KIỆM ---
+          if (tx.note && (tx.note.includes('Rút tiền từ ví:') || tx.note.includes('[Rút ví]'))) {
+             const matchedSaving = rawSavings.find(sv => tx.note.includes(sv.walletName));
+             if (matchedSaving) {
+                 catId = 'wallet_wit_' + matchedSaving.walletId;
+                 catName = matchedSaving.walletName;
+                 catColor = matchedSaving.color || '#EAB308';
+                 catIcon = matchedSaving.icon || 'Wallet';
+             } else {
+                 catName = tx.note.includes('Rút tiền từ ví:') ? tx.note.split('Rút tiền từ ví: ')[1] : tx.note.replace('[Rút ví] ', '').trim();
+                 catId = 'wallet_wit_' + catName;
+                 catColor = '#EAB308';
+                 catIcon = 'Wallet';
+             }
+          }
+
           incomes.push({
             id: tx.id || Math.random().toString(),
             weekId: targetWeekId, catId: catId, category: catName, detail: tx.note || "Giao dịch thu nhập",
             amount: amount, color: catColor, icon: catIcon, iconBg: `bg-[${catColor}20]`, iconColor: `text-[${catColor}]`
           });
         } else if (actualType === 'expense') {
-          const catId = tx.category?.id || 'other';
-          const catName = tx.category?.name || 'Khác';
+          let catId = tx.category?.id || 'other';
+          let catName = tx.category?.name || 'Khác';
           const catFallback = filterCategories.find(c => String(c.id) === String(catId));
-          const catColor = tx.category?.color_hex || tx.category?.color || catFallback?.color || "#3B82F6";
-          const catIcon = tx.category?.icon || catFallback?.icon || 'Wallet';
+          let catColor = tx.category?.color_hex || tx.category?.color || catFallback?.color || "#3B82F6";
+          let catIcon = tx.category?.icon || catFallback?.icon || 'Wallet';
           
+          // --- HACK FIX CHUYÊN BIỆT CHO VÍ TIẾT KIỆM ---
+          if (tx.note && (tx.note.includes('Nạp tiền vào ví:') || tx.note.includes('[Nạp ví]'))) {
+             const matchedSaving = rawSavings.find(sv => tx.note.includes(sv.walletName));
+             if (matchedSaving) {
+                 catId = 'wallet_dep_' + matchedSaving.walletId;
+                 catName = matchedSaving.walletName;
+                 catColor = matchedSaving.color || '#094CB2';
+                 catIcon = matchedSaving.icon || 'PiggyBank';
+             } else {
+                 catName = tx.note.includes('Nạp tiền vào ví:') ? tx.note.split('Nạp tiền vào ví: ')[1] : tx.note.replace('[Nạp ví] ', '').trim();
+                 catId = 'wallet_dep_' + catName;
+                 catColor = '#094CB2';
+                 catIcon = 'PiggyBank';
+             }
+          }
+
           if (!catWeeklyTotals[catId]) catWeeklyTotals[catId] = { w1: 0, w2: 0, w3: 0, w4: 0 };
           catWeeklyTotals[catId][targetWeekId] += amount;
 
@@ -302,7 +334,7 @@ const Reports = () => {
 
     rawSavings.forEach(sv => {
       const svDate = parseSafeDate(sv.date || sv.created_at || sv.transaction_date);
-      const amount = parseInt(String(sv.amount || 0).replace(/\D/g, ''), 10) || 0;
+      const amount = Number(sv.amount) || 0; // Đã thay đổi dòng này
       
       if (isNaN(svDate.getTime()) || amount === 0) return;
 

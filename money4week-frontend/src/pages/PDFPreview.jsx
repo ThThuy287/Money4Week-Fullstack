@@ -169,32 +169,65 @@ const PDFPreview = () => {
 
     currTransactions.forEach(tx => {
       const amt = Number(tx.amount) || 0;
+      // Map chuẩn logic: Nạp tiết kiệm -> Chi, Rút tiết kiệm -> Thu
+      const actualType = tx.type === 'saving' ? 'expense' : (tx.type === 'withdraw' ? 'income' : tx.type);
       
-      const catId = tx.category?.id || 'other';
-      const catName = tx.category?.name || 'Khác';
+      let catId = tx.category?.id || 'other';
+      let catName = tx.category?.name || 'Khác';
       const dbCat = dbCategories.find(c => String(c.id) === String(catId)) || {};
       
-      const catColor = tx.category?.color_hex || tx.category?.color || dbCat.color_hex || dbCat.color || (tx.type === 'income' ? '#16A34A' : '#3B82F6');
-      const catIcon = tx.category?.icon || dbCat.icon || (tx.type === 'income' ? 'Banknote' : 'Wallet');
+      let catColor = tx.category?.color_hex || tx.category?.color || dbCat.color_hex || dbCat.color || (actualType === 'income' ? '#16A34A' : '#3B82F6');
+      let catIcon = tx.category?.icon || dbCat.icon || (actualType === 'income' ? 'Banknote' : 'Wallet');
 
-      if (tx.type === 'income') {
+      // --- HACK FIX CHUYÊN BIỆT CHO VÍ TIẾT KIỆM TRÊN PDF ---
+      if (actualType === 'income' && tx.note && (tx.note.includes('Rút tiền từ ví:') || tx.note.includes('[Rút ví]'))) {
+         const matchedSaving = rawSavings.find(sv => tx.note.includes(sv.walletName));
+         if (matchedSaving) {
+             catId = 'wallet_wit_' + matchedSaving.walletId;
+             catName = matchedSaving.walletName;
+             catColor = matchedSaving.color || '#EAB308';
+             catIcon = matchedSaving.icon || 'Wallet';
+         } else {
+             catName = tx.note.includes('Rút tiền từ ví:') ? tx.note.split('Rút tiền từ ví: ')[1] : tx.note.replace('[Rút ví] ', '').trim();
+             catId = 'wallet_wit_' + catName;
+             catColor = '#EAB308';
+             catIcon = 'Wallet';
+         }
+      } else if (actualType === 'expense' && tx.note && (tx.note.includes('Nạp tiền vào ví:') || tx.note.includes('[Nạp ví]'))) {
+         const matchedSaving = rawSavings.find(sv => tx.note.includes(sv.walletName));
+         if (matchedSaving) {
+             catId = 'wallet_dep_' + matchedSaving.walletId;
+             catName = matchedSaving.walletName;
+             catColor = matchedSaving.color || '#094CB2';
+             catIcon = matchedSaving.icon || 'PiggyBank';
+         } else {
+             catName = tx.note.includes('Nạp tiền vào ví:') ? tx.note.split('Nạp tiền vào ví: ')[1] : tx.note.replace('[Nạp ví] ', '').trim();
+             catId = 'wallet_dep_' + catName;
+             catColor = '#094CB2';
+             catIcon = 'PiggyBank';
+         }
+      }
+
+      if (actualType === 'income') {
         currThu += amt;
         if (!currIncomeGroups[catName]) currIncomeGroups[catName] = { amount: 0, color: catColor };
         currIncomeGroups[catName].amount += amt;
-      } else if (tx.type === 'expense') {
+      } else if (actualType === 'expense') {
         currChi += amt;
         if (!currExpenseGroups[catName]) currExpenseGroups[catName] = { amount: 0, color: catColor };
         currExpenseGroups[catName].amount += amt;
       }
 
-      currentTxsList.push({ ...tx, computedColor: catColor, computedIcon: catIcon }); 
+      // Overwrite lại category để bảng Danh Mục Chi Tiết in ra đúng tên
+      currentTxsList.push({ ...tx, type: actualType, category: { ...tx.category, name: catName, id: catId }, computedColor: catColor, computedIcon: catIcon }); 
     });
 
     prevTransactions.forEach(tx => {
       const amt = Number(tx.amount) || 0;
+      const actualType = tx.type === 'saving' ? 'expense' : (tx.type === 'withdraw' ? 'income' : tx.type);
       
-      if (tx.type === 'income') prevThu += amt;
-      else if (tx.type === 'expense') prevChi += amt;
+      if (actualType === 'income') prevThu += amt;
+      else if (actualType === 'expense') prevChi += amt;
     });
 
     rawTargets.forEach(item => {
@@ -222,7 +255,8 @@ const PDFPreview = () => {
     });
 
     rawSavings.forEach(sv => {
-      const amt = Number(sv.amount) || 0;
+      // Đổi Number() thành parseInt và replace để bỏ đi các ký tự như "VNĐ" hoặc dấu phân cách
+      const amt = parseInt(String(sv.amount || 0).replace(/\D/g, ''), 10) || 0;
       let svDate = parseSafeDate(sv.date || sv.created_at || sv.transaction_date);
 
       if (isNaN(svDate.getTime()) || amt === 0) return;
