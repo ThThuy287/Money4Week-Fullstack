@@ -51,7 +51,6 @@ const COLORS = ['#3366CC', '#BA1A1A', '#DCC661', '#5A5F63', '#16A34A', '#A855F7'
 
 const PDFPreview = () => {
   const navigate = useNavigate();
-  const [activePage, setActivePage] = useState(1);
 
   const [isLoading, setIsLoading] = useState(true);
   const [globalError, setGlobalError] = useState(null);
@@ -368,7 +367,6 @@ const PDFPreview = () => {
   }
 
   return (
-    /* ĐÃ SỬA LỖI GIAO DIỆN BỊ CẮT XÉN: Dùng fixed inset-0 để thoát khỏi Container mặc định của App */
     <div className="fixed inset-0 z-[9999] flex flex-col w-screen h-screen bg-[#525659] print:relative print:inset-auto print:w-full print:h-auto print:bg-transparent overflow-hidden print:overflow-visible">
       
       <style type="text/css" media="print">
@@ -381,7 +379,7 @@ const PDFPreview = () => {
         `}
       </style>
       
-      {/* ====== BỘ CÔNG CỤ PDF TRÊN CÙNG (Giao diện Dark Mode giống Chrome) ====== */}
+      {/* ====== BỘ CÔNG CỤ PDF TRÊN CÙNG ====== */}
       <header className="shrink-0 z-20 flex justify-between items-center px-4 lg:px-6 py-3 bg-[#323639] shadow-[0_2px_4px_rgba(0,0,0,0.2)] print:hidden">
         <div className="flex flex-col">
           <h1 className="font-sans font-medium text-[13px] sm:text-[15px] text-white flex items-center gap-2.5 m-0">
@@ -406,205 +404,183 @@ const PDFPreview = () => {
       </header>
 
       {/* ====== MAIN CONTENT KHU VỰC ĐỌC PDF ====== */}
-      <div className="flex-1 flex overflow-hidden print:overflow-visible print:block">
+      <div className="flex-1 flex justify-center p-4 sm:p-6 lg:p-10 overflow-y-auto custom-scrollbar print:p-0 print:overflow-visible print:block relative">
         
-        {/* THANH BÊN TRÁI - Thumbnails */}
-        <aside className="hidden lg:flex w-[240px] flex-col p-4 gap-6 bg-[#323639] border-r border-black/20 overflow-y-auto print:hidden">
-          <div className="flex flex-col items-center gap-3">
-            <div onClick={() => setActivePage(1)} className={`w-[130px] h-[175px] bg-white cursor-pointer p-2 flex flex-col gap-1.5 transition-all shadow-[0_0_0_2px_#8AB4F8]`}>
-              <div className="w-full h-2.5 bg-[#E3E2E3] rounded-sm" />
-              <div className="w-3/4 h-1.5 bg-[#E3E2E3] rounded-sm" />
-              <div className="flex gap-1.5 mt-1.5">
-                <div className="w-1/3 h-5 bg-[#E3E2E3] rounded-sm" />
-                <div className="w-1/3 h-5 bg-[#E3E2E3] rounded-sm" />
-                <div className="w-1/3 h-5 bg-[#E3E2E3] rounded-sm" />
-              </div>
-              <div className="w-full h-14 bg-[#E3E2E3] rounded-sm mt-1.5" />
-              <div className="w-full h-14 bg-[#E3E2E3] rounded-sm" />
-            </div>
-            <span className={`text-[12px] font-bold text-[#8AB4F8]`}>1</span>
-          </div>
-        </aside>
-
-        {/* KHUNG HIỂN THỊ TỜ GIẤY */}
-        <div className="flex-1 flex justify-center p-4 sm:p-6 lg:p-10 overflow-y-auto custom-scrollbar print:p-0 print:overflow-visible print:block relative">
+        {/* Tờ giấy A4 chuẩn xác kích thước */}
+        <div id="printable-pdf" className="w-full max-w-[794px] h-max bg-white shadow-[0_5px_15px_rgba(0,0,0,0.5)] print:shadow-none relative print:w-full print:max-w-full print:m-0">
           
-          {/* Tờ giấy A4 chuẩn xác kích thước */}
-          <div id="printable-pdf" className="w-full max-w-[794px] h-max bg-white shadow-[0_5px_15px_rgba(0,0,0,0.5)] print:shadow-none relative print:w-full print:max-w-full print:m-0">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden print:fixed print:inset-0">
+            <span className="font-serif font-black text-[48px] sm:text-[80px] lg:text-[120px] text-black/[0.03] -rotate-45 whitespace-nowrap">
+              MONEY4WEEK
+            </span>
+          </div>
+
+          <div className="relative z-10 p-6 sm:p-8 lg:px-12 lg:py-12 flex flex-col min-h-full print:p-8">
             
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden print:fixed print:inset-0">
-              <span className="font-serif font-black text-[48px] sm:text-[80px] lg:text-[120px] text-black/[0.03] -rotate-45 whitespace-nowrap">
-                MONEY4WEEK
-              </span>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end pb-4 lg:pb-6 border-b border-[#C3C6D5]/15 gap-3 lg:gap-0">
+              <div className="flex flex-col gap-1 lg:gap-2">
+                <h2 className="font-serif font-black text-[22px] lg:text-[30px] leading-tight lg:leading-9 tracking-[-0.75px] uppercase text-[#1B1C1D] m-0">
+                  Báo cáo Tổng kết Tài chính
+                </h2>
+                <p className="text-[11px] lg:text-sm tracking-[1.4px] uppercase text-[#434653] m-0">
+                  Báo cáo định kỳ
+                </p>
+              </div>
+              <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-1">
+                <span className="font-serif font-bold text-[18px] lg:text-2xl text-[#3366CC]">Money4Week</span>
+                <span className="text-[10px] lg:text-xs text-[#434653]">Bảo mật & Lưu trữ Thông minh</span>
+              </div>
             </div>
 
-            <div className="relative z-10 p-6 sm:p-8 lg:px-12 lg:py-12 flex flex-col min-h-full print:p-8">
-              
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end pb-4 lg:pb-6 border-b border-[#C3C6D5]/15 gap-3 lg:gap-0">
-                <div className="flex flex-col gap-1 lg:gap-2">
-                  <h2 className="font-serif font-black text-[22px] lg:text-[30px] leading-tight lg:leading-9 tracking-[-0.75px] uppercase text-[#1B1C1D] m-0">
-                    Báo cáo Tổng kết Tài chính
-                  </h2>
-                  <p className="text-[11px] lg:text-sm tracking-[1.4px] uppercase text-[#434653] m-0">
-                    Báo cáo định kỳ
-                  </p>
+            <div className="flex flex-col sm:flex-row gap-3 lg:gap-8 mt-4 lg:mt-8 mb-6 lg:mb-10">
+              <div className="flex-1 p-3 lg:p-4 bg-[#FAF9FA] border border-[#C3C6D5]/15 rounded-md lg:rounded-sm">
+                <p className="text-[10px] lg:text-xs tracking-[0.6px] uppercase text-[#5A5F63] mb-1 m-0">Họ và tên</p>
+                <p className="font-serif font-bold text-[15px] lg:text-lg text-[#1B1C1D] m-0">{userName}</p>
+              </div>
+              <div className="flex-1 p-3 lg:p-4 bg-[#FAF9FA] border border-[#C3C6D5]/15 rounded-md lg:rounded-sm">
+                <p className="text-[10px] lg:text-xs tracking-[0.6px] uppercase text-[#5A5F63] mb-1 m-0">Thời gian thống kê</p>
+                <p className="font-sans font-medium text-[14px] lg:text-base text-[#1B1C1D] m-0">{dateString}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 lg:gap-6 mb-6 lg:mb-12">
+              <div className="flex-1 p-3 lg:p-4 bg-[rgba(51,102,204,0.05)] border-t-[3px] lg:border-t-4 border-[#3366CC] rounded-md lg:rounded relative">
+                <div className="flex items-center gap-2 mb-1 lg:mb-2">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 9l4-4H1z" fill="#3366CC" /></svg>
+                  <span className="text-[12px] lg:text-sm text-[#5A5F63]">Tổng thu nhập</span>
                 </div>
-                <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-1">
-                  <span className="font-serif font-bold text-[18px] lg:text-2xl text-[#3366CC]">Money4Week</span>
-                  <span className="text-[10px] lg:text-xs text-[#434653]">Bảo mật & Lưu trữ Thông minh</span>
-                </div>
+                <p className="font-serif font-bold text-[18px] lg:text-[22px] text-[#3366CC] m-0 truncate" title={fmt(reportData.thu)}>
+                  {fmt(reportData.thu)}
+                </p>
+                <ChangeBadge value={reportData.thuChange} isPositiveGood={true} />
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 lg:gap-8 mt-4 lg:mt-8 mb-6 lg:mb-10">
-                <div className="flex-1 p-3 lg:p-4 bg-[#FAF9FA] border border-[#C3C6D5]/15 rounded-md lg:rounded-sm">
-                  <p className="text-[10px] lg:text-xs tracking-[0.6px] uppercase text-[#5A5F63] mb-1 m-0">Họ và tên</p>
-                  <p className="font-serif font-bold text-[15px] lg:text-lg text-[#1B1C1D] m-0">{userName}</p>
+              <div className="flex-1 p-3 lg:p-4 bg-[rgba(186,26,26,0.05)] border-t-[3px] lg:border-t-4 border-[#BA1A1A] rounded-md lg:rounded relative">
+                <div className="flex items-center gap-2 mb-1 lg:mb-2">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1l4 4H1z" fill="#BA1A1A" /></svg>
+                  <span className="text-[12px] lg:text-sm text-[#5A5F63]">Tổng chi tiêu</span>
                 </div>
-                <div className="flex-1 p-3 lg:p-4 bg-[#FAF9FA] border border-[#C3C6D5]/15 rounded-md lg:rounded-sm">
-                  <p className="text-[10px] lg:text-xs tracking-[0.6px] uppercase text-[#5A5F63] mb-1 m-0">Thời gian thống kê</p>
-                  <p className="font-sans font-medium text-[14px] lg:text-base text-[#1B1C1D] m-0">{dateString}</p>
-                </div>
+                <p className="font-serif font-bold text-[18px] lg:text-[22px] text-[#BA1A1A] m-0 truncate" title={fmt(reportData.chi)}>
+                  {fmt(reportData.chi)}
+                </p>
+                <ChangeBadge value={reportData.chiChange} isPositiveGood={false} />
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 lg:gap-6 mb-6 lg:mb-12">
-                <div className="flex-1 p-3 lg:p-4 bg-[rgba(51,102,204,0.05)] border-t-[3px] lg:border-t-4 border-[#3366CC] rounded-md lg:rounded relative">
-                  <div className="flex items-center gap-2 mb-1 lg:mb-2">
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 9l4-4H1z" fill="#3366CC" /></svg>
-                    <span className="text-[12px] lg:text-sm text-[#5A5F63]">Tổng thu nhập</span>
-                  </div>
-                  <p className="font-serif font-bold text-[20px] lg:text-2xl text-[#3366CC] m-0">
-                    {fmt(reportData.thu)} <span className="text-[11px] lg:text-sm font-normal">VNĐ</span>
-                  </p>
-                  <ChangeBadge value={reportData.thuChange} isPositiveGood={true} />
+              <div className="flex-1 p-3 lg:p-4 bg-[rgba(109,94,0,0.05)] border-t-[3px] lg:border-t-4 border-[#6D5E00] rounded-md lg:rounded relative">
+                <div className="flex items-center gap-2 mb-1 lg:mb-2">
+                  <svg width="12" height="11" viewBox="0 0 12 11" fill="none"><path d="M6 1l3 3H3z" fill="#6D5E00" /></svg>
+                  <span className="text-[12px] lg:text-sm text-[#5A5F63]">Tiết kiệm</span>
                 </div>
-
-                <div className="flex-1 p-3 lg:p-4 bg-[rgba(186,26,26,0.05)] border-t-[3px] lg:border-t-4 border-[#BA1A1A] rounded-md lg:rounded relative">
-                  <div className="flex items-center gap-2 mb-1 lg:mb-2">
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1l4 4H1z" fill="#BA1A1A" /></svg>
-                    <span className="text-[12px] lg:text-sm text-[#5A5F63]">Tổng chi tiêu</span>
-                  </div>
-                  <p className="font-serif font-bold text-[20px] lg:text-2xl text-[#BA1A1A] m-0">
-                    {fmt(reportData.chi)} <span className="text-[11px] lg:text-sm font-normal">VNĐ</span>
-                  </p>
-                  <ChangeBadge value={reportData.chiChange} isPositiveGood={false} />
-                </div>
-
-                <div className="flex-1 p-3 lg:p-4 bg-[rgba(109,94,0,0.05)] border-t-[3px] lg:border-t-4 border-[#6D5E00] rounded-md lg:rounded relative">
-                  <div className="flex items-center gap-2 mb-1 lg:mb-2">
-                    <svg width="12" height="11" viewBox="0 0 12 11" fill="none"><path d="M6 1l3 3H3z" fill="#6D5E00" /></svg>
-                    <span className="text-[12px] lg:text-sm text-[#5A5F63]">Tiết kiệm</span>
-                  </div>
-                  <p className="font-serif font-bold text-[20px] lg:text-2xl text-[#6D5E00] m-0">
-                    {fmt(reportData.saved)} <span className="text-[11px] lg:text-sm font-normal">VNĐ</span>
-                  </p>
-                  <ChangeBadge value={reportData.savedChange} isPositiveGood={true} />
-                </div>
+                <p className="font-serif font-bold text-[18px] lg:text-[22px] text-[#6D5E00] m-0 truncate" title={fmt(reportData.saved)}>
+                  {fmt(reportData.saved)}
+                </p>
+                <ChangeBadge value={reportData.savedChange} isPositiveGood={true} />
               </div>
+            </div>
 
-              <div className="mb-8 lg:mb-10">
-                <h3 className="font-serif font-bold text-[16px] lg:text-lg text-[#1B1C1D] mb-4 lg:mb-6">
-                  Cơ cấu Thu & Chi
-                </h3>
-                <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
-                  <div className="flex-1 p-4 bg-[#FAF9FA] border border-[#C3C6D5]/15 rounded-md lg:rounded-sm">
-                    <h4 className="font-serif font-bold text-[13px] lg:text-sm text-center text-[#1B1C1D] mb-4">Cơ cấu Thu nhập</h4>
-                    <div className="flex items-center gap-4">
-                      <DonutChart data={reportData.incomeData} centerText="100%" />
-                      <div className="flex flex-col gap-2 w-full">
-                        {reportData.incomeData.length === 0 && <span className="text-xs italic text-gray-500">Chưa có thu nhập</span>}
-                        {reportData.incomeData.slice(0, 4).map((item) => (
-                          <div key={item.name} className="flex items-center gap-2 w-full">
-                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                            <span className="text-[11px] lg:text-xs text-[#1B1C1D] truncate flex-1" title={item.name}>{item.name}</span>
-                            <span className="text-[11px] lg:text-xs font-bold text-[#1B1C1D]">({item.pct}%)</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 p-4 bg-[#FAF9FA] border border-[#C3C6D5]/15 rounded-md lg:rounded-sm">
-                    <h4 className="font-serif font-bold text-[13px] lg:text-sm text-center text-[#1B1C1D] mb-4">Cơ cấu Chi tiêu</h4>
-                    <div className="flex items-center gap-4">
-                      <DonutChart data={reportData.expenseData} centerText="100%" />
-                      <div className="flex flex-col gap-2 w-full">
-                        {reportData.expenseData.length === 0 && <span className="text-xs italic text-gray-500">Chưa có chi tiêu</span>}
-                        {reportData.expenseData.slice(0, 4).map((item) => (
-                          <div key={item.name} className="flex items-center gap-2 w-full">
-                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                            <span className="text-[11px] lg:text-xs text-[#1B1C1D] truncate flex-1" title={item.name}>{item.name}</span>
-                            <span className="text-[11px] lg:text-xs font-bold text-[#1B1C1D]">({item.pct}%)</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mb-6 lg:mb-8">
-                <h3 className="font-serif font-bold text-[16px] lg:text-lg text-[#1B1C1D] mb-3 lg:mb-4">
-                  Tổng hợp giao dịch theo danh mục
-                </h3>
-                <div className="bg-[#FAF9FA] border border-[#C3C6D5]/15 rounded-md lg:rounded-sm overflow-x-auto print:overflow-visible">
-                  <table className="w-full min-w-[500px] lg:min-w-full print:min-w-full">
-                    <thead>
-                      <tr className="bg-[#F5F3F4] border-b border-[#C3C6D5]/15">
-                        <th className="text-left px-3 lg:px-4 py-2 lg:py-3 text-[11px] lg:text-xs font-bold tracking-[0.6px] uppercase text-[#5A5F63]">Ngày</th>
-                        <th className="text-left px-3 lg:px-4 py-2 lg:py-3 text-[11px] lg:text-xs font-bold tracking-[0.6px] uppercase text-[#5A5F63]">Danh mục</th>
-                        <th className="text-left px-3 lg:px-4 py-2 lg:py-3 text-[11px] lg:text-xs font-bold tracking-[0.6px] uppercase text-[#5A5F63]">Loại</th>
-                        <th className="text-right px-3 lg:px-4 py-2 lg:py-3 text-[11px] lg:text-xs font-bold tracking-[0.6px] uppercase text-[#5A5F63]">Số tiền</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {reportData.recentTransactions.length === 0 && (
-                        <tr><td colSpan="4" className="text-center py-4 text-xs lg:text-sm text-gray-500">Không có giao dịch nào trong chu kỳ này</td></tr>
-                      )}
-                      {reportData.recentTransactions.map((tx, i) => (
-                        <tr key={i} className="border-b border-[#C3C6D5]/15">
-                          <td className="px-3 lg:px-4 py-2 lg:py-3 text-[12px] lg:text-sm text-[#1B1C1D]">{tx.date}</td>
-                          <td className="px-3 lg:px-4 py-2 lg:py-3 text-[12px] lg:text-sm text-[#1B1C1D]">
-                            <div className="flex items-center gap-2.5">
-                              {(() => {
-                                const IconComp = getIconComponent(tx.icon);
-                                return (
-                                  <div className="w-6 h-6 flex items-center justify-center rounded-md shrink-0" style={{ backgroundColor: `${tx.color}20` }}>
-                                    <IconComp size={14} style={{ color: tx.color }} />
-                                  </div>
-                                );
-                              })()}
-                              <span>{tx.category}</span>
-                            </div>
-                          </td>
-                          <td className={`px-3 lg:px-4 py-2 lg:py-3 text-[12px] lg:text-sm font-medium ${tx.type === 'Chi' ? 'text-[#BA1A1A]' : 'text-[#3366CC]'}`}>
-                            {tx.type}
-                          </td>
-                          <td className={`px-3 lg:px-4 py-2 lg:py-3 text-[12px] lg:text-sm font-medium text-right ${tx.type === 'Chi' ? 'text-[#BA1A1A]' : 'text-[#3366CC]'}`}>
-                            {tx.amount}
-                          </td>
-                        </tr>
+            <div className="mb-8 lg:mb-10">
+              <h3 className="font-serif font-bold text-[16px] lg:text-lg text-[#1B1C1D] mb-4 lg:mb-6">
+                Cơ cấu Thu & Chi
+              </h3>
+              <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+                <div className="flex-1 p-4 bg-[#FAF9FA] border border-[#C3C6D5]/15 rounded-md lg:rounded-sm">
+                  <h4 className="font-serif font-bold text-[13px] lg:text-sm text-center text-[#1B1C1D] mb-4">Cơ cấu Thu nhập</h4>
+                  <div className="flex items-center gap-4">
+                    <DonutChart data={reportData.incomeData} centerText="100%" />
+                    <div className="flex flex-col gap-2 w-full">
+                      {reportData.incomeData.length === 0 && <span className="text-xs italic text-gray-500">Chưa có thu nhập</span>}
+                      {reportData.incomeData.slice(0, 4).map((item) => (
+                        <div key={item.name} className="flex items-center gap-2 w-full">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                          <span className="text-[11px] lg:text-xs text-[#1B1C1D] truncate flex-1" title={item.name}>{item.name}</span>
+                          <span className="text-[11px] lg:text-xs font-bold text-[#1B1C1D]">({item.pct}%)</span>
+                        </div>
                       ))}
-                    </tbody>
-                    <tfoot>
-                      <tr className="bg-[rgba(51,102,204,0.05)] border-t-2 border-[rgba(51,102,204,0.3)]">
-                        <td colSpan="3" className="px-3 lg:px-4 py-3 font-serif font-bold text-[12px] lg:text-sm tracking-[0.7px] uppercase text-[#3366CC]">
-                          Số dư chu kỳ
-                        </td>
-                        <td className="px-3 lg:px-4 py-3 font-serif font-black text-[13px] lg:text-sm text-right text-[#3366CC]">
-                          {fmt(reportData.thu - reportData.chi)}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-1 p-4 bg-[#FAF9FA] border border-[#C3C6D5]/15 rounded-md lg:rounded-sm">
+                  <h4 className="font-serif font-bold text-[13px] lg:text-sm text-center text-[#1B1C1D] mb-4">Cơ cấu Chi tiêu</h4>
+                  <div className="flex items-center gap-4">
+                    <DonutChart data={reportData.expenseData} centerText="100%" />
+                    <div className="flex flex-col gap-2 w-full">
+                      {reportData.expenseData.length === 0 && <span className="text-xs italic text-gray-500">Chưa có chi tiêu</span>}
+                      {reportData.expenseData.slice(0, 4).map((item) => (
+                        <div key={item.name} className="flex items-center gap-2 w-full">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                          <span className="text-[11px] lg:text-xs text-[#1B1C1D] truncate flex-1" title={item.name}>{item.name}</span>
+                          <span className="text-[11px] lg:text-xs font-bold text-[#1B1C1D]">({item.pct}%)</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              <div className="flex flex-col sm:flex-row justify-between items-center pt-4 lg:pt-6 border-t border-[#C3C6D5]/15 mt-auto gap-2 sm:gap-0">
-                <span className="text-[10px] lg:text-xs text-[#434653] text-center sm:text-left">@2026.Money4Week. Quản lý tài chính cá nhân. Được xuất bởi: {userName}</span>
-                <span className="text-[10px] lg:text-xs text-[#434653]">Trang 1/1</span>
-              </div>
-
             </div>
+
+            <div className="mb-6 lg:mb-8">
+              <h3 className="font-serif font-bold text-[16px] lg:text-lg text-[#1B1C1D] mb-3 lg:mb-4">
+                Tổng hợp giao dịch theo danh mục
+              </h3>
+              <div className="bg-[#FAF9FA] border border-[#C3C6D5]/15 rounded-md lg:rounded-sm overflow-x-auto print:overflow-visible">
+                <table className="w-full min-w-[500px] lg:min-w-full print:min-w-full">
+                  <thead>
+                    <tr className="bg-[#F5F3F4] border-b border-[#C3C6D5]/15">
+                      <th className="text-left px-3 lg:px-4 py-2 lg:py-3 text-[11px] lg:text-xs font-bold tracking-[0.6px] uppercase text-[#5A5F63]">Ngày</th>
+                      <th className="text-left px-3 lg:px-4 py-2 lg:py-3 text-[11px] lg:text-xs font-bold tracking-[0.6px] uppercase text-[#5A5F63]">Danh mục</th>
+                      <th className="text-left px-3 lg:px-4 py-2 lg:py-3 text-[11px] lg:text-xs font-bold tracking-[0.6px] uppercase text-[#5A5F63]">Loại</th>
+                      <th className="text-right px-3 lg:px-4 py-2 lg:py-3 text-[11px] lg:text-xs font-bold tracking-[0.6px] uppercase text-[#5A5F63]">Số tiền</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportData.recentTransactions.length === 0 && (
+                      <tr><td colSpan="4" className="text-center py-4 text-xs lg:text-sm text-gray-500">Không có giao dịch nào trong chu kỳ này</td></tr>
+                    )}
+                    {reportData.recentTransactions.map((tx, i) => (
+                      <tr key={i} className="border-b border-[#C3C6D5]/15">
+                        <td className="px-3 lg:px-4 py-2 lg:py-3 text-[12px] lg:text-sm text-[#1B1C1D]">{tx.date}</td>
+                        <td className="px-3 lg:px-4 py-2 lg:py-3 text-[12px] lg:text-sm text-[#1B1C1D]">
+                          <div className="flex items-center gap-2.5">
+                            {(() => {
+                              const IconComp = getIconComponent(tx.icon);
+                              return (
+                                <div className="w-6 h-6 flex items-center justify-center rounded-md shrink-0" style={{ backgroundColor: `${tx.color}20` }}>
+                                  <IconComp size={14} style={{ color: tx.color }} />
+                                </div>
+                              );
+                            })()}
+                            <span>{tx.category}</span>
+                          </div>
+                        </td>
+                        <td className={`px-3 lg:px-4 py-2 lg:py-3 text-[12px] lg:text-sm font-medium ${tx.type === 'Chi' ? 'text-[#BA1A1A]' : 'text-[#3366CC]'}`}>
+                          {tx.type}
+                        </td>
+                        <td className={`px-3 lg:px-4 py-2 lg:py-3 text-[12px] lg:text-sm font-medium text-right ${tx.type === 'Chi' ? 'text-[#BA1A1A]' : 'text-[#3366CC]'}`}>
+                          {tx.amount}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-[rgba(51,102,204,0.05)] border-t-2 border-[rgba(51,102,204,0.3)]">
+                      <td colSpan="3" className="px-3 lg:px-4 py-3 font-serif font-bold text-[12px] lg:text-sm tracking-[0.7px] uppercase text-[#3366CC]">
+                        Số dư chu kỳ
+                      </td>
+                      <td className="px-3 lg:px-4 py-3 font-serif font-black text-[13px] lg:text-sm text-right text-[#3366CC]">
+                        {fmt(reportData.thu - reportData.chi)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-between items-center pt-4 lg:pt-6 border-t border-[#C3C6D5]/15 mt-auto gap-2 sm:gap-0">
+              <span className="text-[10px] lg:text-xs text-[#434653] text-center sm:text-left">@2026.Money4Week. Quản lý tài chính cá nhân. Được xuất bởi: {userName}</span>
+              <span className="text-[10px] lg:text-xs text-[#434653]">Trang 1/1</span>
+            </div>
+
           </div>
         </div>
       </div>
