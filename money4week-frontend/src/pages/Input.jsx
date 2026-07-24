@@ -561,14 +561,13 @@ const Input = () => {
         </div>
 
         {/* CỘT LỊCH SỬ BÊN PHẢI */}
-        <div className="flex flex-col p-5 sm:p-6 lg:p-8 w-full bg-white shadow-sm lg:shadow-[0px_8px_32px_rgba(27,28,29,0.06)] rounded-2xl border border-gray-100 h-full">
+        <div className="flex flex-col p-5 sm:p-6 lg:p-8 w-full bg-white shadow-sm lg:shadow-[0px_8px_32px_rgba(27,28,29,0.06)] rounded-2xl border border-gray-100 lg:h-max lg:sticky lg:top-6">
           <div className="flex justify-between items-end border-b border-[#E3E2E3]/40 pb-3 lg:pb-4 mb-3 lg:mb-4">
             <h3 className="font-sans font-bold text-[16px] lg:text-[18px] text-[#1B1C1D] m-0">Lịch sử Gần đây</h3>
           </div>
           
-          {/* Thêm max-h và overflow-y-auto để có thanh cuộn dọc khi lịch sử quá dài */}
-          {/* Thay max-h-[450px] bằng flex-1 lg:max-h-none để lấp đầy giao diện trên Desktop */}
-          <div className="flex flex-col gap-1 flex-1 min-h-[300px] lg:min-h-0 max-h-[450px] lg:max-h-none overflow-y-auto custom-scrollbar pr-2">
+          {/* Giới hạn chiều cao tối đa trên Desktop là 500px để thanh cuộn hoạt động đúng chuẩn */}
+          <div className="flex flex-col gap-1 flex-1 min-h-[300px] max-h-[450px] lg:max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
             {isLoadingHistory ? ( 
               <div className="flex justify-center py-4 text-sm text-gray-500">Đang tải...</div> 
             ) : (() => {
