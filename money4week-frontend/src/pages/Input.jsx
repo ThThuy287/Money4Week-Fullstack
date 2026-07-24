@@ -581,20 +581,40 @@ const Input = () => {
               return filteredHistory.map((item) => {
                 // Ưu tiên lấy icon từ API trả về, nếu không có thì dò trong mảng allCategories, cuối cùng mới fallback
                 const catFallback = allCategories.find(c => String(c.id) === String(item.category?.id));
-                const iconName = item.category?.icon || catFallback?.icon || (item.type === 'income' ? 'Banknote' : 'Utensils');
-                const IconComp = getIconComponent(iconName);
                 
+                // --- ĐOẠN ĐÁNH CHẶN LOGIC VÍ TIẾT KIỆM ---
+                let finalCatName = item.category?.name || 'Khác';
+                let finalIconName = item.category?.icon || catFallback?.icon || (item.type === 'income' ? 'Banknote' : 'Utensils');
+                let isWalletTransaction = false;
+
+                if (item.note && (item.note.includes('Nạp tiền vào ví:') || item.note.includes('[Nạp ví]'))) {
+                    finalCatName = item.note.includes('Nạp tiền vào ví:') ? item.note.split('Nạp tiền vào ví: ')[1] : item.note.replace('[Nạp ví] ', '').trim();
+                    finalIconName = 'PiggyBank';
+                    isWalletTransaction = true;
+                } else if (item.note && (item.note.includes('Rút tiền từ ví:') || item.note.includes('[Rút ví]'))) {
+                    finalCatName = item.note.includes('Rút tiền từ ví:') ? item.note.split('Rút tiền từ ví: ')[1] : item.note.replace('[Rút ví] ', '').trim();
+                    finalIconName = 'Wallet';
+                    isWalletTransaction = true;
+                }
+                
+                const IconComp = getIconComponent(finalIconName);
+                
+                // Đổi màu sắc: Nếu là ví tiết kiệm, màu chữ danh mục nhạt hơn hoặc đổi icon để dễ phân biệt
                 const colorHex = item.type === 'income' ? 'text-[#16A34A]' : 'text-[#BA1A1A]';
+                const iconColorHex = isWalletTransaction ? (item.type === 'income' ? 'text-[#EAB308]' : 'text-[#094CB2]') : colorHex;
+                
                 const sign = item.type === 'income' ? '+' : '-';
                 const dateStr = item.date || item.transaction_date || getTodayFormatted();
                 const dateParts = dateStr.split('T')[0].split('-');
 
                 return (
                   <div key={item.id} className="flex justify-between items-center py-3 rounded-lg hover:bg-gray-50 px-2 transition-colors group">
-                    <div className="flex items-center gap-3">
-                      <IconComp size={16} className={colorHex} />
-                      <div className="flex flex-col">
-                        <span className="font-sans font-medium text-[13px] lg:text-[14px] text-[#1B1C1D]">{item.category?.name || 'Khác'}</span>
+                    <div className="flex items-center gap-3 w-[60%]">
+                      <IconComp size={16} className={`${iconColorHex} shrink-0`} />
+                      <div className="flex flex-col min-w-0">
+                        <span className={`font-sans font-medium text-[13px] lg:text-[14px] truncate ${isWalletTransaction ? 'text-[#094CB2]' : 'text-[#1B1C1D]'}`} title={finalCatName}>
+                          {finalCatName}
+                        </span>
                         <span className="font-sans italic text-[10px] lg:text-[11px] text-[#434653]">{`${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`}</span>
                       </div>
                     </div>

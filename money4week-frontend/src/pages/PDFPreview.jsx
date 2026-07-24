@@ -255,8 +255,16 @@ const PDFPreview = () => {
     });
 
     rawSavings.forEach(sv => {
-      // Đổi Number() thành parseInt và replace để bỏ đi các ký tự như "VNĐ" hoặc dấu phân cách
-      const amt = parseInt(String(sv.amount || 0).replace(/\D/g, ''), 10) || 0;
+      // Xử lý thông minh tương tự bên Reports.jsx
+      let rawAmtStr = String(sv.amount || '0').trim();
+      if (rawAmtStr.includes('.')) {
+          const parts = rawAmtStr.split('.');
+          if (parts[parts.length - 1] === '00') {
+              rawAmtStr = parts[0];
+          }
+      }
+      const amt = parseInt(rawAmtStr.replace(/\D/g, ''), 10) || 0;
+      
       let svDate = parseSafeDate(sv.date || sv.created_at || sv.transaction_date);
 
       if (isNaN(svDate.getTime()) || amt === 0) return;

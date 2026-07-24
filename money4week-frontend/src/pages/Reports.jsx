@@ -334,7 +334,16 @@ const Reports = () => {
 
     rawSavings.forEach(sv => {
       const svDate = parseSafeDate(sv.date || sv.created_at || sv.transaction_date);
-      const amount = Number(sv.amount) || 0; // Đã thay đổi dòng này
+      
+      // Xử lý thông minh: Nhận diện cả số nguyên, số thập phân DB và chuỗi định dạng
+      let rawAmtStr = String(sv.amount || '0').trim();
+      if (rawAmtStr.includes('.')) {
+          const parts = rawAmtStr.split('.');
+          if (parts[parts.length - 1] === '00') {
+              rawAmtStr = parts[0]; // Bỏ phần thập phân .00 nếu là dữ liệu SQL
+          }
+      }
+      const amount = parseInt(rawAmtStr.replace(/\D/g, ''), 10) || 0;
       
       if (isNaN(svDate.getTime()) || amount === 0) return;
 
